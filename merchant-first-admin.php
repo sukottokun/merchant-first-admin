@@ -144,7 +144,6 @@ final class Merchant_First_Admin {
 		add_action( 'admin_init', array( $self, 'handle_switches' ) );
 		add_filter( 'custom_menu_order', array( $self, 'enable_custom_order' ) );
 		add_filter( 'menu_order', array( $self, 'apply_order' ) );
-		add_filter( 'all_plugins', array( $self, 'hide_self' ) );
 		add_filter( 'parent_file', array( $self, 'fix_highlight' ) );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
 		add_action( 'admin_head', array( $self, 'styles' ) );
@@ -622,14 +621,6 @@ final class Merchant_First_Admin {
 		return isset( $this->promoted[ $plugin_page ] ) ? $this->promoted[ $plugin_page ] : $parent_file;
 	}
 
-	/** Keep the plugin out of the Plugins list so demos stay clean. */
-	public function hide_self( $plugins ) {
-		if ( ! $this->active() ) {
-			return $plugins;
-		}
-		unset( $plugins[ plugin_basename( __FILE__ ) ] );
-		return $plugins;
-	}
 }
 
 Merchant_First_Admin::boot();

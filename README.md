@@ -23,8 +23,6 @@ Menus are found by runtime discovery rather than hardcoded slugs, so it survives
 
 Upload the zip via **Plugins → Add New → Upload Plugin**, then activate. Or drop `merchant-first-admin.php` into `wp-content/mu-plugins/`.
 
-The plugin hides itself from the Plugins list once active. That is intentional.
-
 ## Two URLs to know
 
 * `…/wp-admin/index.php?mfa=off` — This instantly reverts to the standard menu. It works per user and stays saved. There is also a "Merchant view: on" toggle in the admin bar.
