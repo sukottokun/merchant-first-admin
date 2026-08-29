@@ -47,7 +47,8 @@ final class Merchant_First_Admin {
 	 * Orders from edit.php to admin.php.
 	 */
 	private $find_top = array(
-		'home'      => array( 'page=woocommerce', 'woocommerce' ),
+		'woo_parent' => array( 'woocommerce' ),
+		'payments'   => array( 'tab=checkout' ),
 		'products'  => array( 'post_type=product' ),
 		'reports'   => array( 'path=/analytics', 'wc-admin&path=%2Fanalytics' ),
 		'marketing' => array( 'woocommerce-marketing', 'path=/marketing' ),
@@ -60,6 +61,12 @@ final class Merchant_First_Admin {
 	 * Matched on submenu slug needle, then title needle as a fallback.
 	 */
 	private $promote = array(
+		'home'      => array(
+			'title' => 'Home',
+			'icon'  => 'dashicons-store',
+			'slugs' => array( 'wc-admin' ),
+			'names' => array( 'Home' ),
+		),
 		'orders'    => array(
 			'title' => 'Orders',
 			'icon'  => 'dashicons-cart',
@@ -92,14 +99,12 @@ final class Merchant_First_Admin {
 
 	/** Renames applied to discovered top-level items. */
 	private $rename = array(
-		'home'      => 'Home',
 		'reports'   => 'Reports',
 		'wordpress' => 'WordPress',
 	);
 
 	/** Icon overrides. */
 	private $icons = array(
-		'home'      => 'dashicons-store',
 		'reports'   => 'dashicons-chart-bar',
 		'wordpress' => 'dashicons-wordpress',
 	);
@@ -113,6 +118,8 @@ final class Merchant_First_Admin {
 		'edit.php?post_type=page',
 		'upload.php',
 		'edit-comments.php',
+		'edit-tags.php?taxonomy=link_category',
+		'stats',
 		'themes.php',
 		'plugins.php',
 		'users.php',
@@ -127,6 +134,9 @@ final class Merchant_First_Admin {
 	/** Resolved: internal key => index into $GLOBALS['menu']. */
 	private $found = array();
 
+	/** Original submenu slug => the top-level slug it was promoted to. */
+	private $promoted = array();
+
 	public static function boot() {
 		$self = new self();
 		add_action( 'admin_menu', array( $self, 'restructure' ), 9999 );
@@ -135,6 +145,7 @@ final class Merchant_First_Admin {
 		add_filter( 'custom_menu_order', array( $self, 'enable_custom_order' ) );
 		add_filter( 'menu_order', array( $self, 'apply_order' ) );
 		add_filter( 'all_plugins', array( $self, 'hide_self' ) );
+		add_filter( 'parent_file', array( $self, 'fix_highlight' ) );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
 		add_action( 'admin_head', array( $self, 'styles' ) );
 		add_action( 'admin_print_scripts', array( $self, 'suppress_notices' ), 1 );
@@ -252,6 +263,13 @@ final class Merchant_First_Admin {
 		}
 		foreach ( (array) $slugs as $needle ) {
 			foreach ( $submenu[ $parent ] as $k => $item ) {
+				if ( ! empty( $item[2] ) && $item[2] === $needle ) {
+					return $k;
+				}
+			}
+		}
+		foreach ( (array) $slugs as $needle ) {
+			foreach ( $submenu[ $parent ] as $k => $item ) {
 				if ( ! empty( $item[2] ) && false !== strpos( $item[2], $needle ) ) {
 					return $k;
 				}
@@ -321,8 +339,15 @@ final class Merchant_First_Admin {
 			}
 		}
 
-		// 2. Promote Orders / Customers / Settings out of the Woo submenu.
-		$wc_parent = isset( $this->found['home'] ) ? $menu[ $this->found['home'] ][2] : 'woocommerce';
+		// 2. Promote Orders / Customers / Settings onto the top level.
+		//
+		// The originals are deliberately LEFT REGISTERED in $submenu. WordPress
+		// resolves a plugin page's permissions through its original parent —
+		// 'wc-admin' is keyed as woocommerce_page_wc-admin — so removing the
+		// entry makes every promoted page die with "Sorry, you are not allowed
+		// to access this page." We hide the old parent from $menu instead,
+		// which stops it rendering while leaving the registration intact.
+		$wc_parent = isset( $this->found['woo_parent'] ) ? $menu[ $this->found['woo_parent'] ][2] : 'woocommerce';
 
 		foreach ( $this->promote as $key => $spec ) {
 			$k = $this->find_sub( $wc_parent, $spec['slugs'], $spec['names'] );
@@ -330,7 +355,6 @@ final class Merchant_First_Admin {
 				continue;
 			}
 			$item = $submenu[ $wc_parent ][ $k ];
-			unset( $submenu[ $wc_parent ][ $k ] );
 
 			$slug = $item[2];
 			// Submenu slugs are relative to admin.php unless they name their own file.
@@ -338,7 +362,7 @@ final class Merchant_First_Admin {
 				$slug = 'admin.php?page=' . $slug;
 			}
 
-			$pos = $this->free_position();
+			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
 				$spec['title'],
 				$item[1],
@@ -348,15 +372,16 @@ final class Merchant_First_Admin {
 				'mfa-' . $key,
 				$spec['icon'],
 			);
-			$this->found[ $key ] = $pos;
+			$this->found[ $key ]        = $pos;
+			$this->promoted[ $item[2] ] = $slug;
 		}
 
-		// 3. Invent the top-level items Woo doesn't have (Payments).
+		// 3. Invent Payments only if this Woo version doesn't already ship it.
 		foreach ( $this->invent as $key => $spec ) {
-			if ( ! current_user_can( $spec['cap'] ) ) {
+			if ( isset( $this->found[ $key ] ) || ! current_user_can( $spec['cap'] ) ) {
 				continue;
 			}
-			$pos = $this->free_position();
+			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
 				$spec['title'],
 				$spec['cap'],
@@ -369,41 +394,9 @@ final class Merchant_First_Admin {
 			$this->found[ $key ] = $pos;
 		}
 
-		// 4. Point "Home" straight at the Woo dashboard and drop its flyout,
-		//    now that its useful children live on the top level.
-		if ( isset( $this->found['home'] ) ) {
-			$i = $this->found['home'];
-			if ( ! empty( $submenu[ $wc_parent ] ) ) {
-				$first     = reset( $submenu[ $wc_parent ] );
-				$home_slug = ! empty( $first[2] ) ? $first[2] : '';
-
-				// Whatever is left over after promotion still needs a home:
-				// coupons belong with Marketing, Status/Extensions with
-				// Settings. The Home entry itself is dropped — it has become
-				// this top-level item.
-				$settings_target  = isset( $this->found['settings'] ) ? $menu[ $this->found['settings'] ][2] : '';
-				$marketing_target = isset( $this->found['marketing'] ) ? $menu[ $this->found['marketing'] ][2] : '';
-
-				foreach ( $submenu[ $wc_parent ] as $leftover ) {
-					if ( empty( $leftover[2] ) || $leftover[2] === $home_slug ) {
-						continue;
-					}
-					$is_marketing = ( false !== strpos( $leftover[2], 'marketing' ) )
-						|| ( false !== strpos( $leftover[2], 'coupon' ) );
-
-					$target = ( $is_marketing && $marketing_target ) ? $marketing_target : $settings_target;
-					if ( $target ) {
-						$submenu[ $target ][] = $leftover;
-					}
-				}
-
-				unset( $submenu[ $wc_parent ] );
-				if ( $home_slug ) {
-					$menu[ $i ][2] = ( false === strpos( $home_slug, '.php' ) )
-						? 'admin.php?page=' . $home_slug
-						: $home_slug;
-				}
-			}
+		// 4. Hide the old WooCommerce top-level. Its submenu stays registered.
+		if ( isset( $this->found['woo_parent'] ) ) {
+			unset( $menu[ $this->found['woo_parent'] ], $this->found['woo_parent'] );
 		}
 
 		// 5. Rename and re-icon.
@@ -614,6 +607,19 @@ final class Merchant_First_Admin {
 
 	public function footer( $text ) {
 		return $this->active() ? '' : $text;
+	}
+
+	/**
+	 * A promoted page still reports its original parent, which is no longer in
+	 * the menu — so nothing highlights. Point it at the new top-level instead.
+	 */
+	public function fix_highlight( $parent_file ) {
+		global $plugin_page;
+
+		if ( ! $this->active() || empty( $plugin_page ) ) {
+			return $parent_file;
+		}
+		return isset( $this->promoted[ $plugin_page ] ) ? $this->promoted[ $plugin_page ] : $parent_file;
 	}
 
 	/** Keep the plugin out of the Plugins list so demos stay clean. */

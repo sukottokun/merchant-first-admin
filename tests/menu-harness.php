@@ -28,46 +28,55 @@ function wp_parse_url( $u, $c = -1 ) { return parse_url( $u, $c ); }
 $scenario = isset( $argv[1] ) ? $argv[1] : 'store';
 $GLOBALS['_role'] = ( 'shopmgr' === $scenario ) ? 'shop_manager' : 'administrator';
 
-// ---- A realistic WP 6.x + WooCommerce 9.x + Jetpack + Wholesale menu ----
+// ---- Mirrors the live dump from woo-demo-store-68782d (WooCommerce 11.0.1) ----
 $menu = array(
-	'2'    => array( 'Dashboard', 'read', 'index.php', '', 'menu-top', 'menu-dashboard', 'dashicons-dashboard' ),
-	'3'    => array( 'Jetpack', 'manage_options', 'jetpack', '', 'menu-top', 'toplevel_page_jetpack', 'dashicons-jetpack' ),
-	'4'    => array( '', 'read', 'separator1', '', 'wp-menu-separator' ),
-	'5'    => array( 'Posts', 'edit_posts', 'edit.php', '', 'menu-top', 'menu-posts', 'dashicons-admin-post' ),
-	'10'   => array( 'Media', 'upload_files', 'upload.php', '', 'menu-top', 'menu-media', 'dashicons-admin-media' ),
-	'20'   => array( 'Pages', 'edit_pages', 'edit.php?post_type=page', '', 'menu-top', 'menu-pages', 'dashicons-admin-page' ),
-	'25'   => array( 'Comments', 'edit_posts', 'edit-comments.php', '', 'menu-top', 'menu-comments', 'dashicons-admin-comments' ),
-	'55.5' => array( 'WooCommerce', 'manage_woocommerce', 'woocommerce', '', 'menu-top', 'toplevel_page_woocommerce', 'dashicons-cart' ),
-	'55.6' => array( 'Products', 'edit_products', 'edit.php?post_type=product', '', 'menu-top', 'menu-products', 'dashicons-archive' ),
-	'55.7' => array( 'Analytics', 'view_woocommerce_reports', 'wc-admin&path=/analytics/overview', '', 'menu-top', 'toplevel_page_wc-admin-path--analytics-overview', 'dashicons-chart-bar' ),
-	'58'   => array( 'Marketing', 'manage_woocommerce', 'woocommerce-marketing', '', 'menu-top', 'toplevel_page_woocommerce-marketing', 'dashicons-megaphone' ),
-	'58.5' => array( 'Wholesale', 'manage_woocommerce', 'wholesale-for-woocommerce', '', 'menu-top', 'toplevel_page_wholesale', 'dashicons-tag' ),
-	'59'   => array( '', 'read', 'separator2', '', 'wp-menu-separator' ),
-	'60'   => array( 'Appearance', 'switch_themes', 'themes.php', '', 'menu-top', 'menu-appearance', 'dashicons-admin-appearance' ),
-	'65'   => array( 'Plugins', 'activate_plugins', 'plugins.php', '', 'menu-top', 'menu-plugins', 'dashicons-admin-plugins' ),
-	'70'   => array( 'Users', 'list_users', 'users.php', '', 'menu-top', 'menu-users', 'dashicons-admin-users' ),
-	'75'   => array( 'Tools', 'edit_posts', 'tools.php', '', 'menu-top', 'menu-tools', 'dashicons-admin-tools' ),
-	'80'   => array( 'Settings', 'manage_options', 'options-general.php', '', 'menu-top', 'menu-settings', 'dashicons-admin-settings' ),
+	'2'       => array( 'Dashboard', 'read', 'index.php', '', 'menu-top', 'menu-dashboard', 'dashicons-dashboard' ),
+	'2.09281' => array( 'Stats', 'view_stats', 'stats', '', 'menu-top', 'toplevel_page_stats', 'dashicons-chart-area' ),
+	'3'       => array( 'Jetpack', 'jetpack_admin_page', 'jetpack', '', 'menu-top', 'toplevel_page_jetpack', 'dashicons-jetpack' ),
+	'4'       => array( '', 'read', 'separator1', '', 'wp-menu-separator' ),
+	'5'       => array( 'Posts', 'edit_posts', 'edit.php', '', 'menu-top', 'menu-posts', 'dashicons-admin-post' ),
+	'10'      => array( 'Media', 'upload_files', 'upload.php', '', 'menu-top', 'menu-media', 'dashicons-admin-media' ),
+	'15'      => array( 'Links', 'manage_links', 'edit-tags.php?taxonomy=link_category', '', 'menu-top', 'menu-links', 'dashicons-admin-links' ),
+	'20'      => array( 'Pages', 'edit_pages', 'edit.php?post_type=page', '', 'menu-top', 'menu-pages', 'dashicons-admin-page' ),
+	'25'      => array( 'Comments', 'edit_posts', 'edit-comments.php', '', 'menu-top', 'menu-comments', 'dashicons-admin-comments' ),
+	'26'      => array( 'Products', 'edit_products', 'edit.php?post_type=product', '', 'menu-top', 'menu-products', 'dashicons-archive' ),
+	'51'      => array( 'Wholesale', 'manage_wholesale', 'wwp_wholesale', '', 'menu-top', 'toplevel_page_wwp', 'dashicons-tag' ),
+	'55.5'    => array( 'WooCommerce', 'edit_others_shop_orders', 'woocommerce', '', 'menu-top', 'toplevel_page_woocommerce', 'dashicons-cart' ),
+	'56'      => array( 'Payments', 'manage_woocommerce', 'admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM', '', 'menu-top', 'toplevel_page_payments', 'dashicons-money-alt' ),
+	'57'      => array( 'Analytics', 'view_woocommerce_reports', 'wc-admin&path=/analytics/overview', '', 'menu-top', 'toplevel_page_wc-analytics', 'dashicons-chart-bar' ),
+	'58'      => array( 'Marketing', 'manage_woocommerce', 'woocommerce-marketing', '', 'menu-top', 'toplevel_page_woocommerce-marketing', 'dashicons-megaphone' ),
+	'59'      => array( '', 'read', 'separator2', '', 'wp-menu-separator' ),
+	'60'      => array( 'Appearance', 'switch_themes', 'themes.php', '', 'menu-top', 'menu-appearance', 'dashicons-admin-appearance' ),
+	'65'      => array( 'Plugins', 'activate_plugins', 'plugins.php', '', 'menu-top', 'menu-plugins', 'dashicons-admin-plugins' ),
+	'70'      => array( 'Users', 'list_users', 'users.php', '', 'menu-top', 'menu-users', 'dashicons-admin-users' ),
+	'75'      => array( 'Tools', 'edit_posts', 'tools.php', '', 'menu-top', 'menu-tools', 'dashicons-admin-tools' ),
+	'80'      => array( 'Settings', 'manage_options', 'options-general.php', '', 'menu-top', 'menu-settings', 'dashicons-admin-settings' ),
+	'99'      => array( '', 'read', 'separator3', '', 'wp-menu-separator' ),
+	'100'     => array( '', 'read', 'separator4', '', 'wp-menu-separator' ),
 );
 
 $submenu = array(
 	'index.php'   => array(
 		array( 'Home', 'read', 'index.php' ),
-		array( 'Updates', 'update_core', 'update-core.php' ),
+		array( 'Updates', 'update_plugins', 'update-core.php' ),
 	),
 	'edit.php'    => array(
 		array( 'All Posts', 'edit_posts', 'edit.php' ),
 		array( 'Categories', 'manage_categories', 'edit-tags.php?taxonomy=category' ),
-		array( 'Tags', 'manage_categories', 'edit-tags.php?taxonomy=post_tag' ),
+		array( 'Tags', 'manage_post_tags', 'edit-tags.php?taxonomy=post_tag' ),
 	),
 	'woocommerce' => array(
-		array( 'Home', 'manage_woocommerce', 'wc-admin' ),
+		array( 'Home', 'read', 'wc-admin' ),
 		array( 'Orders', 'edit_shop_orders', ( 'legacy' === $scenario ) ? 'edit.php?post_type=shop_order' : 'wc-orders' ),
-		array( 'Customers', 'manage_woocommerce', 'wc-admin&path=/customers' ),
-		array( 'Coupons', 'manage_woocommerce', 'wc-admin&path=/marketing/coupons' ),
+		array( 'Subscriptions', 'edit_shop_orders', 'wc-orders--shop_subscription' ),
+		array( 'Orders', 'edit_shop_orders', 'edit.php?post_type=shop_order' ),
+		array( 'Live Branches', 'read', 'wc-admin&path=/live-branches' ),
+		array( 'Customers', 'view_woocommerce_reports', 'wc-admin&path=/customers' ),
+		array( 'Coupons', 'manage_options', 'coupons-moved' ),
+		array( 'Reports', 'view_woocommerce_reports', 'wc-reports' ),
 		array( 'Settings', 'manage_woocommerce', 'wc-settings' ),
 		array( 'Status', 'manage_woocommerce', 'wc-status' ),
-		array( 'Extensions', 'manage_woocommerce', 'wc-addons' ),
+		array( 'Extensions', 'view_woocommerce_reports', 'wc-admin&path=/extensions' ),
 	),
 	'themes.php'  => array(
 		array( 'Themes', 'switch_themes', 'themes.php' ),
@@ -112,3 +121,12 @@ foreach ( $order as $slug ) {
 		}
 	}
 }
+
+echo "\nREGISTRATION CHECK\n";
+echo isset( $submenu['woocommerce'] )
+	? "  PASS  \$submenu['woocommerce'] still registered (" . count( $submenu['woocommerce'] ) . " entries) — promoted pages keep their permissions\n"
+	: "  FAIL  \$submenu['woocommerce'] was destroyed — promoted pages will 403\n";
+$tops = array();
+foreach ( $menu as $m ) { if ( '' !== $m[0] ) { $tops[] = wp_strip_all_tags( $m[0] ); } }
+$dupes = array_keys( array_filter( array_count_values( $tops ), function ( $n ) { return $n > 1; } ) );
+echo $dupes ? "  FAIL  duplicate top-level items: " . implode( ', ', $dupes ) . "\n" : "  PASS  no duplicate top-level items\n";
