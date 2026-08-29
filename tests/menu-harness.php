@@ -44,7 +44,7 @@ $menu = array(
 	'10'      => array( 'Media', 'upload_files', 'upload.php', '', 'menu-top', 'menu-media', 'dashicons-admin-media' ),
 	'15'      => array( 'Links', 'manage_links', 'edit-tags.php?taxonomy=link_category', '', 'menu-top', 'menu-links', 'dashicons-admin-links' ),
 	'20'      => array( 'Pages', 'edit_pages', 'edit.php?post_type=page', '', 'menu-top', 'menu-pages', 'dashicons-admin-page' ),
-	'25'      => array( 'Comments', 'edit_posts', 'edit-comments.php', '', 'menu-top', 'menu-comments', 'dashicons-admin-comments' ),
+	'25'      => array( 'Comments <span class="awaiting-mod count-0"><span class="pending-count" aria-hidden="true">0</span><span class="comments-in-moderation-text screen-reader-text">0 Comments in moderation</span></span>', 'edit_posts', 'edit-comments.php', '', 'menu-top', 'menu-comments', 'dashicons-admin-comments' ),
 	'26'      => array( 'Products', 'edit_products', 'edit.php?post_type=product', '', 'menu-top', 'menu-products', 'dashicons-archive' ),
 	'51'      => array( 'Wholesale', 'manage_wholesale', 'wwp_wholesale', '', 'menu-top', 'toplevel_page_wwp', 'dashicons-tag' ),
 	'55.5'    => array( 'WooCommerce', 'edit_others_shop_orders', 'woocommerce', '', 'menu-top', 'toplevel_page_woocommerce', 'dashicons-cart' ),
@@ -53,7 +53,7 @@ $menu = array(
 	'58'      => array( 'Marketing', 'manage_woocommerce', 'woocommerce-marketing', '', 'menu-top', 'toplevel_page_woocommerce-marketing', 'dashicons-megaphone' ),
 	'59'      => array( '', 'read', 'separator2', '', 'wp-menu-separator' ),
 	'60'      => array( 'Appearance', 'switch_themes', 'themes.php', '', 'menu-top', 'menu-appearance', 'dashicons-admin-appearance' ),
-	'65'      => array( 'Plugins', 'activate_plugins', 'plugins.php', '', 'menu-top', 'menu-plugins', 'dashicons-admin-plugins' ),
+	'65'      => array( 'Plugins <span class="update-plugins count-2"><span class="update-count">2</span></span>', 'activate_plugins', 'plugins.php', '', 'menu-top', 'menu-plugins', 'dashicons-admin-plugins' ),
 	'70'      => array( 'Users', 'list_users', 'users.php', '', 'menu-top', 'menu-users', 'dashicons-admin-users' ),
 	'75'      => array( 'Tools', 'edit_posts', 'tools.php', '', 'menu-top', 'menu-tools', 'dashicons-admin-tools' ),
 	'80'      => array( 'Settings', 'manage_options', 'options-general.php', '', 'menu-top', 'menu-settings', 'dashicons-admin-settings' ),
@@ -136,3 +136,10 @@ $tops = array();
 foreach ( $menu as $m ) { if ( '' !== $m[0] ) { $tops[] = wp_strip_all_tags( $m[0] ); } }
 $dupes = array_keys( array_filter( array_count_values( $tops ), function ( $n ) { return $n > 1; } ) );
 echo $dupes ? "  FAIL  duplicate top-level items: " . implode( ', ', $dupes ) . "\n" : "  PASS  no duplicate top-level items\n";
+
+$drawer_labels = array();
+foreach ( (array) $submenu['index.php'] as $d ) { $drawer_labels[] = $d[0]; }
+$dirty = array_filter( $drawer_labels, function ( $l ) { return (bool) preg_match( '/\d|moderation|<span/', $l ); } );
+echo $dirty
+	? "  FAIL  drawer labels still carry count markup: " . implode( ' | ', $dirty ) . "\n"
+	: "  PASS  drawer labels are clean\n";

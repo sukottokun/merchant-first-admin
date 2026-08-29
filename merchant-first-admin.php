@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.1.2
+ * Version:      1.1.3
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.1.2';
+	const VERSION  = '1.1.3';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -253,13 +253,13 @@ final class Merchant_First_Admin {
 				printf( "  %-5s ---- separator ----\n", $pos );
 				continue;
 			}
-			printf( "  %-5s %-28s cap=%-22s slug=%s\n", $pos, wp_strip_all_tags( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
+			printf( "  %-5s %-28s cap=%-22s slug=%s\n", $pos, $this->clean_label( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
 		}
 		echo "\n\nSUBMENUS\n";
 		foreach ( (array) $submenu as $parent => $items ) {
 			echo "\n  [$parent]\n";
 			foreach ( $items as $item ) {
-				printf( "      %-28s cap=%-22s slug=%s\n", wp_strip_all_tags( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
+				printf( "      %-28s cap=%-22s slug=%s\n", $this->clean_label( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
 			}
 		}
 		echo "\n\nRESOLVED BY THIS PLUGIN\n\n";
@@ -316,7 +316,7 @@ final class Merchant_First_Admin {
 		}
 		foreach ( (array) $names as $name ) {
 			foreach ( $submenu[ $parent ] as $k => $item ) {
-				if ( 0 === strcasecmp( trim( wp_strip_all_tags( $item[ self::TITLE ] ) ), $name ) ) {
+				if ( 0 === strcasecmp( trim( $this->clean_label( $item[ self::TITLE ] ) ), $name ) ) {
 					return $k;
 				}
 			}
@@ -519,7 +519,7 @@ final class Merchant_First_Admin {
 			}
 
 			$new[] = array(
-				wp_strip_all_tags( $item[ self::TITLE ] ),
+				$this->clean_label( $item[ self::TITLE ] ),
 				$item[ self::CAP ],
 				$item[ self::SLUG ],
 				isset( $item[ self::PAGE_TITLE ] ) ? $item[ self::PAGE_TITLE ] : $item[ self::TITLE ],
@@ -530,6 +530,22 @@ final class Merchant_First_Admin {
 		if ( $new ) {
 			$submenu[ $parent ] = $new;
 		}
+	}
+
+	/**
+	 * Flatten a core menu title to a plain label.
+	 *
+	 * Core packs count bubbles into the title as markup, including a
+	 * screen-reader-only copy of the text. wp_strip_all_tags() alone merges
+	 * both into the visible label — "Comments" becomes "Comments 00 Comments
+	 * in moderation" — so drop the spans whole before stripping.
+	 *
+	 * @param string $title Raw menu title, possibly containing markup.
+	 * @return string
+	 */
+	private function clean_label( $title ) {
+		$title = preg_replace( '#<span[^>]*>.*?</span>#is', '', (string) $title );
+		return trim( wp_strip_all_tags( $title ) );
 	}
 
 	private function find_exact_top( $needle ) {
