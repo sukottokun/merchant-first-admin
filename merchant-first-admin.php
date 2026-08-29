@@ -2,9 +2,12 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.0.0
+ * Version:      1.1.0
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
+ * Text Domain:  merchant-first-admin
+ * Requires at least: 6.4
+ * Requires PHP: 7.4
  *
  * Escape hatches (admins only):
  *   ?mfa=off      turn the restructure off for your user (persists)
@@ -19,8 +22,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.0.0';
+	const VERSION  = '1.1.0';
 	const OPT_USER = 'mfa_disabled';
+	const NONCE    = 'mfa-switch';
+	const TEXTDOMAIN = 'merchant-first-admin';
+
+	/**
+	 * Offsets into a $menu / $submenu row. Core never names these, so every
+	 * plugin that touches the admin menu ends up reading $item[ self::SLUG ] and hoping.
+	 */
+	const TITLE      = 0;
+	const CAP        = 1;
+	const SLUG       = 2;
+	const PAGE_TITLE = 3;
+	const CLASSES    = 4;
+	const HOOKNAME   = 5;
+	const ICON       = 6;
 
 	/**
 	 * Top-level order, by our internal keys. Anything not listed keeps its
@@ -165,7 +182,8 @@ final class Merchant_First_Admin {
 		}
 		// admin_menu fires before admin_init, so read the switch straight from
 		// the request as well as from the stored preference — otherwise ?mfa=off
-		// would not take effect until the following pageload.
+		// would not take effect until the following pageload. This path only
+		// reads; the write lives in handle_switches() behind a nonce.
 		if ( isset( $_GET['mfa'] ) && current_user_can( 'manage_options' ) ) {
 			$mode = sanitize_key( wp_unslash( $_GET['mfa'] ) );
 			if ( 'off' === $mode ) {
@@ -182,6 +200,16 @@ final class Merchant_First_Admin {
 		if ( ! current_user_can( 'manage_options' ) || empty( $_GET['mfa'] ) ) {
 			return;
 		}
+
+		// Persisting the preference is a state change, so it needs a nonce.
+		// Without one the switch still applies to this pageload only (see
+		// active()), which keeps the hand-typed escape hatch usable while
+		// leaving nothing CSRF-able.
+		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, self::NONCE ) ) {
+			return;
+		}
+
 		$mode = sanitize_key( wp_unslash( $_GET['mfa'] ) );
 
 		if ( 'off' === $mode ) {
@@ -209,22 +237,22 @@ final class Merchant_First_Admin {
 		echo "WooCommerce: " . ( defined( 'WC_VERSION' ) ? WC_VERSION : 'not detected' ) . "\n";
 		echo str_repeat( '=', 72 ) . "\n\nTOP LEVEL\n\n";
 		foreach ( (array) $menu as $pos => $item ) {
-			if ( empty( $item[0] ) ) {
+			if ( empty( $item[ self::TITLE ] ) ) {
 				printf( "  %-5s ---- separator ----\n", $pos );
 				continue;
 			}
-			printf( "  %-5s %-28s cap=%-22s slug=%s\n", $pos, wp_strip_all_tags( $item[0] ), $item[1], $item[2] );
+			printf( "  %-5s %-28s cap=%-22s slug=%s\n", $pos, wp_strip_all_tags( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
 		}
 		echo "\n\nSUBMENUS\n";
 		foreach ( (array) $submenu as $parent => $items ) {
 			echo "\n  [$parent]\n";
 			foreach ( $items as $item ) {
-				printf( "      %-28s cap=%-22s slug=%s\n", wp_strip_all_tags( $item[0] ), $item[1], $item[2] );
+				printf( "      %-28s cap=%-22s slug=%s\n", wp_strip_all_tags( $item[ self::TITLE ] ), $item[ self::CAP ], $item[ self::SLUG ] );
 			}
 		}
 		echo "\n\nRESOLVED BY THIS PLUGIN\n\n";
 		foreach ( $this->found as $key => $idx ) {
-			printf( "  %-12s -> menu[%s] = %s\n", $key, $idx, isset( $menu[ $idx ][2] ) ? $menu[ $idx ][2] : '?' );
+			printf( "  %-12s -> menu[%s] = %s\n", $key, $idx, isset( $menu[ $idx ][ self::SLUG ] ) ? $menu[ $idx ][ self::SLUG ] : '?' );
 		}
 		exit;
 	}
@@ -240,14 +268,14 @@ final class Merchant_First_Admin {
 		// to 'edit.php?post_type=page'.
 		foreach ( (array) $needles as $needle ) {
 			foreach ( (array) $menu as $i => $item ) {
-				if ( ! empty( $item[2] ) && $item[2] === $needle ) {
+				if ( ! empty( $item[ self::SLUG ] ) && $item[ self::SLUG ] === $needle ) {
 					return $i;
 				}
 			}
 		}
 		foreach ( (array) $needles as $needle ) {
 			foreach ( (array) $menu as $i => $item ) {
-				if ( ! empty( $item[2] ) && false !== strpos( $item[2], $needle ) ) {
+				if ( ! empty( $item[ self::SLUG ] ) && false !== strpos( $item[ self::SLUG ], $needle ) ) {
 					return $i;
 				}
 			}
@@ -262,21 +290,21 @@ final class Merchant_First_Admin {
 		}
 		foreach ( (array) $slugs as $needle ) {
 			foreach ( $submenu[ $parent ] as $k => $item ) {
-				if ( ! empty( $item[2] ) && $item[2] === $needle ) {
+				if ( ! empty( $item[ self::SLUG ] ) && $item[ self::SLUG ] === $needle ) {
 					return $k;
 				}
 			}
 		}
 		foreach ( (array) $slugs as $needle ) {
 			foreach ( $submenu[ $parent ] as $k => $item ) {
-				if ( ! empty( $item[2] ) && false !== strpos( $item[2], $needle ) ) {
+				if ( ! empty( $item[ self::SLUG ] ) && false !== strpos( $item[ self::SLUG ], $needle ) ) {
 					return $k;
 				}
 			}
 		}
 		foreach ( (array) $names as $name ) {
 			foreach ( $submenu[ $parent ] as $k => $item ) {
-				if ( 0 === strcasecmp( trim( wp_strip_all_tags( $item[0] ) ), $name ) ) {
+				if ( 0 === strcasecmp( trim( wp_strip_all_tags( $item[ self::TITLE ] ) ), $name ) ) {
 					return $k;
 				}
 			}
@@ -355,7 +383,7 @@ final class Merchant_First_Admin {
 			}
 			$item = $submenu[ $wc_parent ][ $k ];
 
-			$slug = $item[2];
+			$slug = $item[ self::SLUG ];
 			// Submenu slugs are relative to admin.php unless they name their own file.
 			if ( false === strpos( $slug, '.php' ) ) {
 				$slug = 'admin.php?page=' . $slug;
@@ -363,16 +391,16 @@ final class Merchant_First_Admin {
 
 			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
-				$spec['title'],
-				$item[1],
+				$this->label( $spec['title'] ),
+				$item[ self::CAP ],
 				$slug,
-				isset( $item[3] ) ? $item[3] : $spec['title'],
+				isset( $item[ self::PAGE_TITLE ] ) ? $item[ self::PAGE_TITLE ] : $spec['title'],
 				'menu-top mfa-promoted',
 				'mfa-' . $key,
 				$spec['icon'],
 			);
 			$this->found[ $key ]        = $pos;
-			$this->promoted[ $item[2] ] = $slug;
+			$this->promoted[ $item[ self::SLUG ] ] = $slug;
 		}
 
 		// 3. Invent Payments only if this Woo version doesn't already ship it.
@@ -382,7 +410,7 @@ final class Merchant_First_Admin {
 			}
 			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
-				$spec['title'],
+				$this->label( $spec['title'] ),
 				$spec['cap'],
 				$spec['slug'],
 				$spec['title'],
@@ -417,7 +445,7 @@ final class Merchant_First_Admin {
 		// 7. Drop every stock separator and place exactly one, immediately
 		//    above the WordPress drawer.
 		foreach ( (array) $menu as $i => $item ) {
-			$classes = isset( $item[4] ) ? $item[4] : '';
+			$classes = isset( $item[ self::CLASSES ] ) ? $item[ self::CLASSES ] : '';
 			if ( false !== strpos( $classes, 'wp-menu-separator' ) ) {
 				unset( $menu[ $i ] );
 			}
@@ -460,8 +488,8 @@ final class Merchant_First_Admin {
 
 		// Keep the real Dashboard as the drawer's first entry.
 		foreach ( $dash as $item ) {
-			if ( ! empty( $item[2] ) && 'index.php' === $item[2] ) {
-				$item[0] = 'Dashboard';
+			if ( ! empty( $item[ self::SLUG ] ) && 'index.php' === $item[ self::SLUG ] ) {
+				$item[ self::TITLE ] = __( 'Dashboard', 'merchant-first-admin' );
 				$new[]   = $item;
 				break;
 			}
@@ -474,15 +502,15 @@ final class Merchant_First_Admin {
 			}
 			$item = $menu[ $i ];
 
-			if ( $this->is_current( $item[2] ) ) {
+			if ( $this->is_current( $item[ self::SLUG ] ) ) {
 				continue; // leave it expanded on the top level
 			}
 
 			$new[] = array(
-				wp_strip_all_tags( $item[0] ),
-				$item[1],
-				$item[2],
-				isset( $item[3] ) ? $item[3] : $item[0],
+				wp_strip_all_tags( $item[ self::TITLE ] ),
+				$item[ self::CAP ],
+				$item[ self::SLUG ],
+				isset( $item[ self::PAGE_TITLE ] ) ? $item[ self::PAGE_TITLE ] : $item[ self::TITLE ],
 			);
 			unset( $menu[ $i ] );
 		}
@@ -494,6 +522,21 @@ final class Merchant_First_Admin {
 
 	private function find_exact_top( $needle ) {
 		return $this->find_top_index( array( $needle ) );
+	}
+
+	/**
+	 * Translate a menu label.
+	 *
+	 * The labels live in property defaults, which PHP will not let us wrap in
+	 * __() at declaration, so translation happens here instead. Every string
+	 * passed in is a literal from the config arrays above.
+	 *
+	 * @param string $text Untranslated label.
+	 * @return string
+	 */
+	private function label( $text ) {
+		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+		return __( $text, self::TEXTDOMAIN );
 	}
 
 	private function free_position() {
@@ -565,9 +608,9 @@ final class Merchant_First_Admin {
 		if ( current_user_can( 'manage_options' ) ) {
 			$bar->add_node( array(
 				'id'    => 'mfa-toggle',
-				'title' => 'Merchant view: on',
-				'href'  => add_query_arg( 'mfa', 'off' ),
-				'meta'  => array( 'title' => 'Switch back to the stock WordPress menu' ),
+				'title' => __( 'Merchant view: on', 'merchant-first-admin' ),
+				'href'  => wp_nonce_url( add_query_arg( 'mfa', 'off' ), self::NONCE ),
+				'meta'  => array( 'title' => __( 'Switch back to the stock WordPress menu', 'merchant-first-admin' ) ),
 			) );
 		}
 	}

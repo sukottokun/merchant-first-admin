@@ -12,6 +12,12 @@ function get_user_meta( $u, $k, $s = false ) { return ''; }
 function update_user_meta( $u, $k, $v ) {}
 function delete_user_meta( $u, $k ) {}
 function current_user_can( $c ) { return true; }
+function __( $t, $d = null ) { return $t; }
+function _e( $t, $d = null ) { echo $t; }
+function esc_html__( $t, $d = null ) { return $t; }
+function wp_verify_nonce( $n, $a ) { return 'valid' === $n ? 1 : false; }
+function wp_create_nonce( $a ) { return 'valid'; }
+function wp_nonce_url( $u, $a ) { return $u . '&_wpnonce=valid'; }
 function wp_strip_all_tags( $t ) { return trim( strip_tags( (string) $t ) ); }
 function sanitize_key( $k ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', $k ) ); }
 function sanitize_text_field( $t ) { return trim( (string) $t ); }
