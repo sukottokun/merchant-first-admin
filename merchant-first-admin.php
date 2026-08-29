@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.1.3
+ * Version:      1.2.0
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.1.3';
+	const VERSION  = '1.2.0';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -46,15 +46,13 @@ final class Merchant_First_Admin {
 	private $order = array(
 		'home',
 		'orders',
+		'subscriptions',
 		'products',
 		'customers',
 		'reports',
 		'marketing',
 		'payments',
-		'wholesale',
 		'settings',
-		'separator',
-		'wordpress',
 	);
 
 	/**
@@ -69,7 +67,6 @@ final class Merchant_First_Admin {
 		'products'  => array( 'post_type=product' ),
 		'reports'   => array( 'path=/analytics', 'wc-admin&path=%2Fanalytics' ),
 		'marketing' => array( 'woocommerce-marketing', 'path=/marketing' ),
-		'wholesale' => array( 'wholesale' ),
 		'wordpress' => array( 'index.php' ),
 	);
 
@@ -89,6 +86,12 @@ final class Merchant_First_Admin {
 			'icon'  => 'dashicons-cart',
 			'slugs' => array( 'wc-orders', 'post_type=shop_order' ),
 			'names' => array( 'Orders' ),
+		),
+		'subscriptions' => array(
+			'title' => 'Subscriptions',
+			'icon'  => 'dashicons-update',
+			'slugs' => array( 'wc-orders--shop_subscription', 'post_type=shop_subscription' ),
+			'names' => array( 'Subscriptions' ),
 		),
 		'customers' => array(
 			'title' => 'Customers',
@@ -143,6 +146,17 @@ final class Merchant_First_Admin {
 		'tools.php',
 		'options-general.php',
 		'jetpack',
+	);
+
+	/**
+	 * The catch-all. Every WooCommerce submenu entry that isn't promoted to
+	 * the top level ends up here, so nothing a Woo extension registers can
+	 * silently vanish.
+	 */
+	private $extensions = array(
+		'title' => 'Extensions',
+		'icon'  => 'dashicons-admin-plugins',
+		'slug'  => 'admin.php?page=wc-admin&path=/extensions',
 	);
 
 	/** Roles that never see the WordPress drawer at all. */
@@ -386,7 +400,7 @@ final class Merchant_First_Admin {
 		// entry makes every promoted page die with "Sorry, you are not allowed
 		// to access this page." We hide the old parent from $menu instead,
 		// which stops it rendering while leaving the registration intact.
-		$wc_parent = isset( $this->found['woo_parent'] ) ? $menu[ $this->found['woo_parent'] ][2] : 'woocommerce';
+		$wc_parent = isset( $this->found['woo_parent'] ) ? $menu[ $this->found['woo_parent'] ][ self::SLUG ] : 'woocommerce';
 
 		foreach ( $this->promote as $key => $spec ) {
 			$k = $this->find_sub( $wc_parent, $spec['slugs'], $spec['names'] );
@@ -441,17 +455,21 @@ final class Merchant_First_Admin {
 		// 5. Rename and re-icon.
 		foreach ( $this->rename as $key => $title ) {
 			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ] ) ) {
-				$menu[ $this->found[ $key ] ][0] = $title;
-				$menu[ $this->found[ $key ] ][3] = $title;
+				$menu[ $this->found[ $key ] ][ self::TITLE ] = $title;
+				$menu[ $this->found[ $key ] ][ self::PAGE_TITLE ] = $title;
 			}
 		}
 		foreach ( $this->icons as $key => $icon ) {
 			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ] ) ) {
-				$menu[ $this->found[ $key ] ][6] = $icon;
+				$menu[ $this->found[ $key ] ][ self::ICON ] = $icon;
 			}
 		}
 
-		// 6. Fold WordPress-land into the drawer.
+		// 6. Everything left under WooCommerce goes to Extensions, so no
+		//    extension can register a menu that never appears anywhere.
+		$this->build_extensions( $wc_parent );
+
+		// 7. Fold WordPress-land into the drawer.
 		$this->build_drawer();
 
 		// 7. Drop every stock separator and place exactly one, immediately
@@ -470,6 +488,78 @@ final class Merchant_First_Admin {
 	}
 
 	/**
+	 * Collect every WooCommerce submenu entry that wasn't promoted.
+	 *
+	 * Deduplicated by visible label against what is already on the top level,
+	 * which drops the legacy twins WooCommerce keeps registered alongside the
+	 * HPOS screens (two Orders, two Subscriptions). Every distinct destination
+	 * stays reachable.
+	 *
+	 * @param string $wc_parent Slug the WooCommerce submenu is keyed under.
+	 */
+	private function build_extensions( $wc_parent ) {
+		global $menu, $submenu;
+
+		if ( empty( $submenu[ $wc_parent ] ) ) {
+			return;
+		}
+
+		$placed = array();
+		foreach ( (array) $menu as $item ) {
+			if ( ! empty( $item[ self::TITLE ] ) ) {
+				$placed[] = strtolower( $this->clean_label( $item[ self::TITLE ] ) );
+			}
+		}
+
+		$leftovers = array();
+		foreach ( $submenu[ $wc_parent ] as $item ) {
+			if ( empty( $item[ self::SLUG ] ) || isset( $this->promoted[ $item[ self::SLUG ] ] ) ) {
+				continue;
+			}
+			$label = strtolower( $this->clean_label( $item[ self::TITLE ] ) );
+			if ( '' === $label || in_array( $label, $placed, true ) ) {
+				continue;
+			}
+			$placed[]    = $label;
+			$leftovers[] = array(
+				$this->clean_label( $item[ self::TITLE ] ),
+				$item[ self::CAP ],
+				$item[ self::SLUG ],
+			);
+		}
+
+		if ( ! $leftovers ) {
+			return;
+		}
+
+		// WordPress links a parent menu to its FIRST child, so the marketplace
+		// page has to lead or "Extensions" would open Live Branches.
+		usort(
+			$leftovers,
+			function ( $a, $b ) {
+				$rank = function ( $row ) {
+					return ( false !== strpos( $row[ self::SLUG ], 'extensions' )
+						|| false !== strpos( $row[ self::SLUG ], 'wc-addons' ) ) ? 0 : 1;
+				};
+				return $rank( $a ) <=> $rank( $b );
+			}
+		);
+
+		$pos          = $this->free_position();
+		$menu[ $pos ] = array(
+			$this->label( $this->extensions['title'] ),
+			$leftovers[0][ self::CAP ],
+			$this->extensions['slug'],
+			$this->extensions['title'],
+			'menu-top mfa-extensions',
+			'mfa-extensions',
+			$this->extensions['icon'],
+		);
+		$this->found['extensions']            = $pos;
+		$submenu[ $this->extensions['slug'] ] = $leftovers;
+	}
+
+	/**
 	 * Move core menus under the renamed Dashboard ("WordPress").
 	 *
 	 * The item that owns the current screen is deliberately left on the top
@@ -482,7 +572,7 @@ final class Merchant_First_Admin {
 		if ( ! isset( $this->found['wordpress'] ) ) {
 			return;
 		}
-		$parent = $menu[ $this->found['wordpress'] ][2]; // index.php
+		$parent = $menu[ $this->found['wordpress'] ][ self::SLUG ]; // index.php
 
 		if ( $this->user_has_role( $this->hide_drawer_for ) ) {
 			unset( $menu[ $this->found['wordpress'] ], $this->found['wordpress'] );
@@ -599,15 +689,28 @@ final class Merchant_First_Admin {
 			return $slugs;
 		}
 
-		$wanted = array();
+		// The named merchant items, in the order above.
+		$named = array();
 		foreach ( $this->order as $key ) {
-			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ][2] ) ) {
-				$wanted[] = $menu[ $this->found[ $key ] ][2];
+			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ][ self::SLUG ] ) ) {
+				$named[] = $menu[ $this->found[ $key ] ][ self::SLUG ];
 			}
 		}
 
-		$rest = array_diff( $slugs, $wanted );
-		return array_merge( $wanted, $rest );
+		// Extensions, the separator and the drawer always close out the menu.
+		$tail = array();
+		foreach ( array( 'extensions', 'separator', 'wordpress' ) as $key ) {
+			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ][ self::SLUG ] ) ) {
+				$tail[] = $menu[ $this->found[ $key ] ][ self::SLUG ];
+			}
+		}
+
+		// Anything else — Wholesale, Bookings, whatever gets installed next —
+		// keeps the position it registered, in the store group above the
+		// drawer. Nothing needs to be named here to be placed sensibly.
+		$others = array_values( array_diff( $slugs, $named, $tail ) );
+
+		return array_merge( $named, $others, $tail );
 	}
 
 	/* ---------------------------------------------------------------------
