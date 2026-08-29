@@ -143,3 +143,14 @@ $dirty = array_filter( $drawer_labels, function ( $l ) { return (bool) preg_matc
 echo $dirty
 	? "  FAIL  drawer labels still carry count markup: " . implode( ' | ', $dirty ) . "\n"
 	: "  PASS  drawer labels are clean\n";
+
+$bad = array();
+foreach ( (array) $submenu as $parent => $items ) {
+	if ( false === strpos( (string) $parent, 'admin.php' ) ) { continue; }
+	foreach ( $items as $i ) {
+		if ( false === strpos( $i[2], '.php' ) ) { $bad[] = $parent . ' > ' . $i[2]; }
+	}
+}
+echo $bad
+	? "  FAIL  promoted submenu slugs would render as file paths: " . implode( ' | ', $bad ) . "\n"
+	: "  PASS  promoted submenu slugs are admin.php-resolvable\n";

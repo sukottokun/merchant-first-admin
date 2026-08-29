@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.2.0
+ * Version:      1.2.1
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.2.0';
+	const VERSION  = '1.2.1';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -409,11 +409,7 @@ final class Merchant_First_Admin {
 			}
 			$item = $submenu[ $wc_parent ][ $k ];
 
-			$slug = $item[ self::SLUG ];
-			// Submenu slugs are relative to admin.php unless they name their own file.
-			if ( false === strpos( $slug, '.php' ) ) {
-				$slug = 'admin.php?page=' . $slug;
-			}
+			$slug = $this->absolute_slug( $item[ self::SLUG ] );
 
 			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
@@ -524,8 +520,9 @@ final class Merchant_First_Admin {
 			$leftovers[] = array(
 				$this->clean_label( $item[ self::TITLE ] ),
 				$item[ self::CAP ],
-				$item[ self::SLUG ],
+				$this->absolute_slug( $item[ self::SLUG ] ),
 			);
+			$this->promoted[ $item[ self::SLUG ] ] = $this->absolute_slug( $item[ self::SLUG ] );
 		}
 
 		if ( ! $leftovers ) {
@@ -655,6 +652,21 @@ final class Merchant_First_Admin {
 	private function label( $text ) {
 		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 		return __( $text, self::TEXTDOMAIN );
+	}
+
+	/**
+	 * Make a submenu slug linkable from the top level.
+	 *
+	 * Submenu slugs are bare page names; WordPress only resolves those
+	 * relative to admin.php when the page hook is registered under that exact
+	 * parent. Promote one and that no longer holds, so the link renders as a
+	 * file path and 404s. Prefix it explicitly.
+	 *
+	 * @param string $slug Registered submenu slug.
+	 * @return string
+	 */
+	private function absolute_slug( $slug ) {
+		return ( false === strpos( $slug, '.php' ) ) ? 'admin.php?page=' . $slug : $slug;
 	}
 
 	private function free_position() {
