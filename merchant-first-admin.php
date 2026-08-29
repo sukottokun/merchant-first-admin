@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.1.0
+ * Version:      1.1.1
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.1.0';
+	const VERSION  = '1.1.1';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -201,21 +201,20 @@ final class Merchant_First_Admin {
 			return;
 		}
 
-		// Persisting the preference is a state change, so it needs a nonce.
-		// Without one the switch still applies to this pageload only (see
-		// active()), which keeps the hand-typed escape hatch usable while
-		// leaving nothing CSRF-able.
+		$mode  = sanitize_key( wp_unslash( $_GET['mfa'] ) );
 		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
-		if ( ! wp_verify_nonce( $nonce, self::NONCE ) ) {
+
+		if ( 'on' === $mode ) {
+			// Restoring the default state. Deliberately nonce-free: this is the
+			// recovery path, and requiring a nonce here strands anyone whose
+			// preference is already off, because the admin bar toggle that
+			// would carry the nonce only renders while the plugin is active.
+			delete_user_meta( get_current_user_id(), self::OPT_USER );
 			return;
 		}
 
-		$mode = sanitize_key( wp_unslash( $_GET['mfa'] ) );
-
-		if ( 'off' === $mode ) {
+		if ( 'off' === $mode && wp_verify_nonce( $nonce, self::NONCE ) ) {
 			update_user_meta( get_current_user_id(), self::OPT_USER, 1 );
-		} elseif ( 'on' === $mode ) {
-			delete_user_meta( get_current_user_id(), self::OPT_USER );
 		}
 	}
 
@@ -235,6 +234,9 @@ final class Merchant_First_Admin {
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		echo "MERCHANT-FIRST ADMIN " . self::VERSION . " — live menu dump\n";
 		echo "WooCommerce: " . ( defined( 'WC_VERSION' ) ? WC_VERSION : 'not detected' ) . "\n";
+		echo 'active():    ' . ( $this->active() ? 'YES' : 'NO — restructure was skipped' ) . "\n";
+		echo 'user meta ' . self::OPT_USER . ': ' . var_export( get_user_meta( get_current_user_id(), self::OPT_USER, true ), true ) . "\n";
+		echo 'MFA_DISABLE: ' . ( defined( 'MFA_DISABLE' ) ? var_export( MFA_DISABLE, true ) : 'not defined' ) . "\n";
 		echo str_repeat( '=', 72 ) . "\n\nTOP LEVEL\n\n";
 		foreach ( (array) $menu as $pos => $item ) {
 			if ( empty( $item[ self::TITLE ] ) ) {
@@ -588,6 +590,14 @@ final class Merchant_First_Admin {
 
 	public function clean_admin_bar( $bar ) {
 		if ( ! $this->active() ) {
+			// Still offer the way back in.
+			if ( current_user_can( 'manage_options' ) ) {
+				$bar->add_node( array(
+					'id'    => 'mfa-toggle',
+					'title' => __( 'Merchant view: off', 'merchant-first-admin' ),
+					'href'  => add_query_arg( 'mfa', 'on' ),
+				) );
+			}
 			return;
 		}
 
