@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.1.1
+ * Version:      1.1.2
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.1.1';
+	const VERSION  = '1.1.2';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -237,8 +237,18 @@ final class Merchant_First_Admin {
 		echo 'active():    ' . ( $this->active() ? 'YES' : 'NO — restructure was skipped' ) . "\n";
 		echo 'user meta ' . self::OPT_USER . ': ' . var_export( get_user_meta( get_current_user_id(), self::OPT_USER, true ), true ) . "\n";
 		echo 'MFA_DISABLE: ' . ( defined( 'MFA_DISABLE' ) ? var_export( MFA_DISABLE, true ) : 'not defined' ) . "\n";
+		printf(
+			"menu rows: %d   submenu parents: %d   resolved: %d\n",
+			count( (array) $menu ),
+			count( (array) $submenu ),
+			count( $this->found )
+		);
 		echo str_repeat( '=', 72 ) . "\n\nTOP LEVEL\n\n";
 		foreach ( (array) $menu as $pos => $item ) {
+			if ( ! is_array( $item ) ) {
+				printf( "  %-5s ?? not an array\n", $pos );
+				continue;
+			}
 			if ( empty( $item[ self::TITLE ] ) ) {
 				printf( "  %-5s ---- separator ----\n", $pos );
 				continue;
