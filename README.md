@@ -51,20 +51,19 @@ Prefer it as a must-use plugin? Drop `merchant-first-admin.php` straight into `w
 
 ## Escape hatches
 
-Administrators only. Append to any admin URL:
+Two URLs to know:
 
-| URL | Effect |
-|---|---|
-| `?mfa=off` | Revert to the stock WordPress menu. Per-user, persists. |
-| `?mfa=on` | Turn it back on. |
-| `?mfa=notices` | Show admin notices for this pageload. |
-| `?mfa=debug` | Dump the live `$menu` / `$submenu` arrays as plain text and stop. |
-
-There is also a **Merchant view: on** toggle in the admin bar.
-
-Defining `MFA_DISABLE` as `true` in `wp-config.php` disables it site-wide.
+* `…/wp-admin/index.php?mfa=off` — This instantly reverts to the standard menu. It works per user and stays saved. There is also a "Merchant view: on" toggle in the admin bar.
+* `…/wp-admin/index.php?mfa=debug` — This dumps the live `$menu` and `$submenu` as plain text.
 
 `?mfa=debug` is the one to reach for when a menu doesn't land where you expected — it prints every registered slug and capability, plus what the plugin resolved, so the config arrays at the top of the file can be tuned against reality.
+
+Two more, for completeness:
+
+* `?mfa=on` — Turn it back on after `?mfa=off`.
+* `?mfa=notices` — Show admin notices for this pageload.
+
+All four are administrators only, and work appended to any admin URL. Defining `MFA_DISABLE` as `true` in `wp-config.php` disables the plugin site-wide.
 
 ## Configuration
 
