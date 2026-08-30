@@ -4,7 +4,7 @@ Tags: woocommerce, admin, admin-menu, ecommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.8
+Stable tag: 0.9.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,9 @@ Add `?mfa=debug` to any admin URL for a plain-text dump of the live menu registr
 No. It updates itself from GitHub releases, which is why it carries an `Update URI` header. WordPress.org does not permit that header on plugins it hosts.
 
 == Changelog ==
+
+= 0.9.9 =
+* The admin bar toggle's tooltip now shows the running version.
 
 = 0.9.8 =
 * Fixed: "Check again" now really rechecks. The cached release lookup is skipped on a forced check instead of being served stale for up to 12 hours.
