@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.3.1
+ * Version:      1.4.0
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.3.1';
+	const VERSION  = '1.4.0';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -75,10 +75,16 @@ final class Merchant_First_Admin {
 	 */
 	private $promote = array(
 		'home'      => array(
-			'title' => 'Home',
-			'icon'  => 'dashicons-store',
-			'slugs' => array( 'wc-admin' ),
-			'names' => array( 'Home' ),
+			'title'  => 'Home',
+			'icon'   => 'dashicons-store',
+			'slugs'  => array( 'wc-admin' ),
+			'names'  => array( 'Home' ),
+			// Land on Analytics Overview rather than Woo's stock Home screen.
+			// Overview already renders the performance tiles and charts a
+			// merchant wants first; stock Home is an onboarding checklist.
+			// Permissions still resolve through the original 'wc-admin'
+			// registration — 'path' is a client-side route, not a page.
+			'target' => 'admin.php?page=wc-admin&path=/analytics/overview',
 		),
 		'orders'    => array(
 			'title' => 'Orders',
@@ -408,7 +414,9 @@ final class Merchant_First_Admin {
 			}
 			$item = $submenu[ $wc_parent ][ $k ];
 
-			$slug = $this->absolute_slug( $item[ self::SLUG ] );
+			$slug = empty( $spec['target'] )
+				? $this->absolute_slug( $item[ self::SLUG ] )
+				: $spec['target'];
 
 			$pos          = $this->free_position();
 			$menu[ $pos ] = array(
