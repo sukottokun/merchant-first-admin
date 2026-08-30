@@ -16,7 +16,7 @@ The stock WordPress admin menu makes a store look like a blog with a shop bolted
 
 This plugin reorders that menu around store operations. Orders, Products, Customers and Payments move to the top level; Posts, Pages, Media, Comments, Appearance, Plugins, Users, Tools and Settings fold into a single **WordPress** drawer.
 
-Placement is by rule rather than by name. Only the merchant items and the core WordPress drawer are named in config — everything else, including whatever extension is installed next, keeps the position it registered and stays in the store group. Anything left under WooCommerce is swept into an **Extensions** menu, so no extension can register a menu that never appears anywhere.
+Placement is by rule rather than by name. Only the merchant items and the core WordPress drawer are named in config. Everything else, including whatever extension is installed next, keeps the position it registered and stays in the store group. Anything left under WooCommerce is swept into an **Extensions** menu, so no extension can register a menu that never appears anywhere.
 
 Menus are located by runtime discovery rather than hardcoded slugs, so the plugin survives WooCommerce version changes and handles both HPOS and legacy order screens.
 
@@ -48,7 +48,7 @@ Add `?mfa=debug` to any admin URL for a plain-text dump of the live menu registr
 
 = Is this on WordPress.org? =
 
-No. It updates itself from GitHub releases, which is why it carries an `Update URI` header — a header WordPress.org does not permit for plugins it hosts.
+No. It updates itself from GitHub releases, which is why it carries an `Update URI` header. WordPress.org does not permit that header on plugins it hosts.
 
 == Changelog ==
 
