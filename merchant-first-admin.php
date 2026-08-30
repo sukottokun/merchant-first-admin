@@ -2,12 +2,13 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.2
+ * Version:      0.9.3
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
  * Requires at least: 6.4
  * Requires PHP: 7.4
+ * Update URI:   https://github.com/sukottokun/merchant-first-admin
  *
  * Escape hatches (admins only):
  *   ?mfa=off      turn the restructure off for your user (persists)
@@ -22,9 +23,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '0.9.2';
+	const VERSION  = '0.9.3';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
+	const REPO     = 'sukottokun/merchant-first-admin';
+	const REPO_URL = 'https://github.com/sukottokun/merchant-first-admin';
+	const RELEASE_CACHE = 'mfa_latest_release';
 	const TEXTDOMAIN = 'merchant-first-admin';
 
 	/**
@@ -181,6 +185,12 @@ final class Merchant_First_Admin {
 		add_filter( 'custom_menu_order', array( $self, 'enable_custom_order' ) );
 		add_filter( 'menu_order', array( $self, 'apply_order' ) );
 		add_filter( 'parent_file', array( $self, 'fix_highlight' ) );
+
+		// The Update URI header routes WordPress's update check to this
+		// filter — named for the host in that header — instead of
+		// WordPress.org. Core has done this since 5.8, so no update library
+		// is needed.
+		add_filter( 'update_plugins_github.com', array( $self, 'check_for_update' ), 10, 3 );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
 		add_action( 'admin_head', array( $self, 'styles' ) );
 		add_action( 'admin_footer', array( $self, 'accordion_script' ) );
@@ -815,6 +825,92 @@ final class Merchant_First_Admin {
 				'meta'  => array( 'title' => __( 'Switch back to the stock WordPress menu', 'merchant-first-admin' ) ),
 			) );
 		}
+	}
+
+	/**
+	 * Report a newer GitHub release to WordPress's update system.
+	 *
+	 * @param array|false $update      Update payload, or false for none.
+	 * @param array       $plugin_data Headers from this plugin's file.
+	 * @param string      $plugin_file Plugin basename being checked.
+	 * @return array|false
+	 */
+	public function check_for_update( $update, $plugin_data, $plugin_file ) {
+		if ( plugin_basename( __FILE__ ) !== $plugin_file ) {
+			return $update;
+		}
+
+		$release = $this->latest_release();
+		if ( ! $release || version_compare( $release['version'], self::VERSION, '<=' ) ) {
+			return $update;
+		}
+
+		return array(
+			'slug'    => dirname( $plugin_file ),
+			'version' => $release['version'],
+			'url'     => self::REPO_URL,
+			'package' => $release['package'],
+		);
+	}
+
+	/**
+	 * Latest release tag and zip asset, cached.
+	 *
+	 * The zip must be a release ASSET, not GitHub's generated zipball: a
+	 * zipball unpacks to owner-repo-sha/, which WordPress would install as a
+	 * separate plugin rather than an update. bin/release.sh builds the right
+	 * shape.
+	 *
+	 * @return array|null
+	 */
+	private function latest_release() {
+		$cached = get_site_transient( self::RELEASE_CACHE );
+		if ( is_array( $cached ) ) {
+			return $cached ? $cached : null;
+		}
+
+		$response = wp_remote_get(
+			'https://api.github.com/repos/' . self::REPO . '/releases/latest',
+			array(
+				'timeout' => 10,
+				'headers' => array(
+					'Accept'     => 'application/vnd.github+json',
+					'User-Agent' => 'merchant-first-admin/' . self::VERSION,
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			// Cache the miss briefly so a rate limit or outage doesn't mean a
+			// blocking request on every admin pageload.
+			set_site_transient( self::RELEASE_CACHE, array(), HOUR_IN_SECONDS );
+			return null;
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body['tag_name'] ) || empty( $body['assets'] ) ) {
+			set_site_transient( self::RELEASE_CACHE, array(), HOUR_IN_SECONDS );
+			return null;
+		}
+
+		$package = '';
+		foreach ( $body['assets'] as $asset ) {
+			if ( ! empty( $asset['browser_download_url'] ) && '.zip' === substr( $asset['browser_download_url'], -4 ) ) {
+				$package = $asset['browser_download_url'];
+				break;
+			}
+		}
+		if ( ! $package ) {
+			set_site_transient( self::RELEASE_CACHE, array(), HOUR_IN_SECONDS );
+			return null;
+		}
+
+		$data = array(
+			'version' => ltrim( $body['tag_name'], 'vV' ),
+			'package' => $package,
+		);
+		set_site_transient( self::RELEASE_CACHE, $data, 12 * HOUR_IN_SECONDS );
+		return $data;
 	}
 
 	/**

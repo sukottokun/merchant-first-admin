@@ -29,7 +29,20 @@ Submenus are click-to-expand accordions rather than hover flyouts. The section y
 
 ## Install
 
-Upload the zip via **Plugins → Add New → Upload Plugin**, then activate. Or drop `merchant-first-admin.php` into `wp-content/mu-plugins/`.
+Grab the zip from [the latest release](https://github.com/sukottokun/merchant-first-admin/releases/latest), upload it via **Plugins → Add New → Upload Plugin**, then activate. Or drop `merchant-first-admin.php` into `wp-content/mu-plugins/`.
+
+## Updates
+
+The plugin reports its own updates from GitHub releases, so after the first install you update it from **Dashboard → Updates** like any other plugin — no re-uploading. This uses core's `Update URI` header and the `update_plugins_{$hostname}` filter, available since WordPress 5.8, rather than an update library. Release checks are cached for 12 hours.
+
+To publish one:
+
+```bash
+# bump Version: and const VERSION in merchant-first-admin.php, then
+./bin/release.sh 0.9.3
+```
+
+The script refuses to run if the version you pass doesn't match both places in the plugin file, lints, runs the tests, builds a zip that unpacks to `merchant-first-admin/`, and attaches it to the release. That folder name matters: GitHub's generated zipball unpacks to `owner-repo-sha/`, which WordPress installs as a *separate* plugin instead of an update.
 
 ## Two URLs to know
 

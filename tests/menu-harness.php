@@ -34,7 +34,7 @@ function wp_parse_url( $u, $c = -1 ) { return parse_url( $u, $c ); }
 $scenario = isset( $argv[1] ) ? $argv[1] : 'store';
 $GLOBALS['_role'] = ( 'shopmgr' === $scenario ) ? 'shop_manager' : 'administrator';
 
-// ---- Mirrors the live dump from woo-demo-store-68782d (WooCommerce 11.0.1) ----
+// ---- Mirrors a live WooCommerce 11.x admin menu (WP 6.x + Jetpack + a B2B extension) ----
 $menu = array(
 	'2'       => array( 'Dashboard', 'read', 'index.php', '', 'menu-top', 'menu-dashboard', 'dashicons-dashboard' ),
 	'2.09281' => array( 'Stats', 'view_stats', 'stats', '', 'menu-top', 'toplevel_page_stats', 'dashicons-chart-area' ),
