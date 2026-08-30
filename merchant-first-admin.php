@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.5
+ * Version:      0.9.6
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION       = '0.9.5';
+	const VERSION      = '0.9.6';
 	const OPT_USER      = 'mfa_disabled';
 	const NONCE         = 'mfa-switch';
 	const REPO          = 'sukottokun/merchant-first-admin';
