@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.3.0
+ * Version:      1.3.1
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.3.0';
+	const VERSION  = '1.3.1';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -52,7 +52,6 @@ final class Merchant_First_Admin {
 		'reports',
 		'marketing',
 		'payments',
-		'settings',
 	);
 
 	/**
@@ -709,9 +708,11 @@ final class Merchant_First_Admin {
 			}
 		}
 
-		// Extensions, the separator and the drawer always close out the menu.
+		// Extensions, then Settings, then the separator and the drawer always
+		// close out the menu — Settings stays last no matter what gets
+		// installed, rather than drifting above whatever registered itself.
 		$tail = array();
-		foreach ( array( 'extensions', 'separator', 'wordpress' ) as $key ) {
+		foreach ( array( 'extensions', 'settings', 'separator', 'wordpress' ) as $key ) {
 			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ][ self::SLUG ] ) ) {
 				$tail[] = $menu[ $this->found[ $key ] ][ self::SLUG ];
 			}

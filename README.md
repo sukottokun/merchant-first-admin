@@ -5,17 +5,21 @@ A single-file WordPress plugin that reshapes `wp-admin` around store operations:
 ```
 Home                          WordPress ▾
 Orders                          Dashboard
-Products                        Posts
-Customers                       Pages
-Reports                         Media
-Marketing                       Comments
-Payments                        Appearance
-Wholesale                       Plugins
+Subscriptions                   Posts
+Products                        Pages
+Customers                       Media
+Reports                         Comments
+Marketing                       Links
+Payments                        Stats
+Wholesale ◂ unnamed             Appearance
+Extensions ▸                    Plugins
 Settings                        Users
 ──────────                      Tools
 WordPress ▸                     Site settings
                                 Jetpack
 ```
+
+Placement is by rule, not by name. Only the merchant items above and the core WordPress drawer are listed in config; everything else — Wholesale, and whatever extension you install next — keeps the position it registered and stays in the store group. Anything left under WooCommerce is swept into **Extensions**, so no extension can register a menu that never appears. Settings always closes the store group.
 
 Menus are found by runtime discovery rather than hardcoded slugs, so it survives Woo version changes and handles both HPOS and legacy order screens. The item owning the current screen stays on the top level, keeping its own submenu reachable. `shop_manager` never sees the WordPress drawer.
 
@@ -32,7 +36,7 @@ Also `?mfa=on` and `?mfa=notices`. All are administrators only. `define( 'MFA_DI
 
 ## Configure
 
-The properties at the top of the class: `$order`, `$find_top`, `$promote`, `$invent`, `$rename`, `$icons`, `$drawer`, `$hide_drawer_for`.
+The properties at the top of the class: `$order`, `$find_top`, `$promote`, `$invent`, `$rename`, `$icons`, `$extensions`, `$drawer`, `$hide_drawer_for`.
 
 ## Tests
 
