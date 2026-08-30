@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.7
+ * Version:      0.9.8
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION       = '0.9.7';
+	const VERSION       = '0.9.8';
 	const OPT_USER      = 'mfa_disabled';
 	const NONCE         = 'mfa-switch';
 	const REPO          = 'sukottokun/merchant-first-admin';
@@ -191,6 +191,7 @@ final class Merchant_First_Admin {
 		// WordPress.org. Core has done this since 5.8, so no update library
 		// is needed.
 		add_filter( 'update_plugins_github.com', array( $self, 'check_for_update' ), 10, 3 );
+		add_action( 'upgrader_process_complete', array( $self, 'forget_release_cache' ), 10, 0 );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
 		add_action( 'admin_enqueue_scripts', array( $self, 'assets' ) );
 		add_action( 'admin_print_scripts', array( $self, 'suppress_notices' ), 1 );
@@ -882,6 +883,13 @@ final class Merchant_First_Admin {
 	}
 
 	/**
+	 * Drop the cached release lookup after any update runs.
+	 */
+	public function forget_release_cache() {
+		delete_site_transient( self::RELEASE_CACHE );
+	}
+
+	/**
 	 * Latest release tag and zip asset, cached.
 	 *
 	 * The zip must be a release ASSET, not GitHub's generated zipball: a
@@ -892,9 +900,20 @@ final class Merchant_First_Admin {
 	 * @return array|null
 	 */
 	private function latest_release() {
-		$cached = get_site_transient( self::RELEASE_CACHE );
-		if ( is_array( $cached ) ) {
-			return $cached ? $cached : null;
+		// "Check again" on update-core.php sets force-check. Honour it: it
+		// clears WordPress's cache but not ours, so without this the site
+		// re-asks and gets the same stale answer for up to 12 hours, and the
+		// button appears broken.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading a core UI flag to decide whether to skip a cache.
+		$force = ! empty( $_GET['force-check'] );
+
+		if ( $force ) {
+			delete_site_transient( self::RELEASE_CACHE );
+		} else {
+			$cached = get_site_transient( self::RELEASE_CACHE );
+			if ( is_array( $cached ) ) {
+				return $cached ? $cached : null;
+			}
 		}
 
 		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get -- vip_safe_wp_remote_get() only exists on the VIP platform; this plugin targets ordinary WordPress installs. The result is cached and failures are cached too, so this runs at most twice a day.
