@@ -137,8 +137,8 @@ foreach ( $order as $slug ) {
 
 echo "\nREGISTRATION CHECK\n";
 echo isset( $submenu['woocommerce'] )
-	? "  PASS  \$submenu['woocommerce'] still registered (" . count( $submenu['woocommerce'] ) . " entries) — promoted pages keep their permissions\n"
-	: "  FAIL  \$submenu['woocommerce'] was destroyed — promoted pages will 403\n";
+	? "  PASS  \$submenu['woocommerce'] still registered (" . count( $submenu['woocommerce'] ) . " entries), promoted pages keep their permissions\n"
+	: "  FAIL  \$submenu['woocommerce'] was destroyed, promoted pages will 403\n";
 $tops = array();
 foreach ( $menu as $m ) { if ( '' !== $m[0] ) { $tops[] = wp_strip_all_tags( $m[0] ); } }
 $dupes = array_keys( array_filter( array_count_values( $tops ), function ( $n ) { return $n > 1; } ) );

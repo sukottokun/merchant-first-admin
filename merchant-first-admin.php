@@ -87,7 +87,7 @@ final class Merchant_First_Admin {
 			// Overview already renders the performance tiles and charts a
 			// merchant wants first; stock Home is an onboarding checklist.
 			// Permissions still resolve through the original 'wc-admin'
-			// registration — 'path' is a client-side route, not a page.
+			// registration. 'path' is a client-side route, not a page.
 			'target' => 'admin.php?page=wc-admin&path=/analytics/overview',
 		),
 		'orders'        => array(
@@ -140,7 +140,7 @@ final class Merchant_First_Admin {
 
 	/**
 	 * Top-level menus folded into the WordPress drawer, in drawer order.
-	 * Slug needles again — these are core so they're stable.
+	 * Slug needles again. These are core, so they're stable.
 	 */
 	private $drawer = array(
 		'edit.php',
@@ -187,7 +187,7 @@ final class Merchant_First_Admin {
 		add_filter( 'parent_file', array( $self, 'fix_highlight' ) );
 
 		// The Update URI header routes WordPress's update check to this
-		// filter — named for the host in that header — instead of
+		// filter, named for the host in that header, instead of
 		// WordPress.org. Core has done this since 5.8, so no update library
 		// is needed.
 		add_filter( 'update_plugins_github.com', array( $self, 'check_for_update' ), 10, 3 );
@@ -210,7 +210,7 @@ final class Merchant_First_Admin {
 			return false;
 		}
 		// admin_menu fires before admin_init, so read the switch straight from
-		// the request as well as from the stored preference — otherwise ?mfa=off
+		// the request as well as from the stored preference. Otherwise ?mfa=off
 		// would not take effect until the following pageload. This path only
 		// reads; the write lives in handle_switches() behind a nonce.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
@@ -271,9 +271,9 @@ final class Merchant_First_Admin {
 		// here would corrupt the very slugs the dump exists to show: every
 		// 'wc-admin&path=/customers' would read '&amp;', which is the detail
 		// you are reading the dump for.
-		echo 'MERCHANT-FIRST ADMIN ' . self::VERSION . " — live menu dump\n";
+		echo 'MERCHANT-FIRST ADMIN ' . self::VERSION . " live menu dump\n";
 		echo 'WooCommerce: ' . ( defined( 'WC_VERSION' ) ? WC_VERSION : 'not detected' ) . "\n";
-		echo 'active():    ' . ( $this->active() ? 'YES' : 'NO — restructure was skipped' ) . "\n";
+		echo 'active():    ' . ( $this->active() ? 'YES' : 'NO, restructure was skipped' ) . "\n";
 		$stored = get_user_meta( get_current_user_id(), self::OPT_USER, true );
 		echo 'user meta ' . self::OPT_USER . ': ' . ( '' === $stored ? '(unset)' : $stored ) . "\n";
 		echo 'MFA_DISABLE: ' . ( defined( 'MFA_DISABLE' ) ? ( MFA_DISABLE ? 'true' : 'false' ) : 'not defined' ) . "\n";
@@ -423,8 +423,8 @@ final class Merchant_First_Admin {
 		// 2. Promote Orders / Customers / Settings onto the top level.
 		//
 		// The originals are deliberately LEFT REGISTERED in $submenu. WordPress
-		// resolves a plugin page's permissions through its original parent —
-		// 'wc-admin' is keyed as woocommerce_page_wc-admin — so removing the
+		// resolves a plugin page's permissions through its original parent.
+		// 'wc-admin' is keyed as woocommerce_page_wc-admin, so removing the
 		// entry makes every promoted page die with "Sorry, you are not allowed
 		// to access this page." We hide the old parent from $menu instead,
 		// which stops it rendering while leaving the registration intact.
@@ -492,7 +492,7 @@ final class Merchant_First_Admin {
 		}
 
 		// 5b. Home already lands on Analytics Overview, so a separate Reports
-		//     top-level pointed at the same route — and WordPress highlighted
+		//     top-level pointed at the same route, and WordPress highlighted
 		//     both, through two different code paths. Fold the sub-reports
 		//     under Home and drop the duplicate. As with the WooCommerce
 		//     parent, the original submenu stays registered so permissions
@@ -695,8 +695,8 @@ final class Merchant_First_Admin {
 	 *
 	 * Core packs count bubbles into the title as markup, including a
 	 * screen-reader-only copy of the text. wp_strip_all_tags() alone merges
-	 * both into the visible label — "Comments" becomes "Comments 00 Comments
-	 * in moderation" — so drop the spans whole before stripping.
+	 * both into the visible label: "Comments" becomes "Comments 00 Comments
+	 * in moderation". Drop the spans whole before stripping.
 	 *
 	 * @param string $title Raw menu title, possibly containing markup.
 	 * @return string
@@ -784,7 +784,7 @@ final class Merchant_First_Admin {
 		}
 
 		// Extensions, then Settings, then the separator and the drawer always
-		// close out the menu — Settings stays last no matter what gets
+		// close out the menu. Settings stays last no matter what gets
 		// installed, rather than drifting above whatever registered itself.
 		$tail = array();
 		foreach ( array( 'extensions', 'settings', 'separator', 'wordpress' ) as $key ) {
@@ -793,7 +793,7 @@ final class Merchant_First_Admin {
 			}
 		}
 
-		// Anything else — Wholesale, Bookings, whatever gets installed next —
+		// Anything else (Wholesale, Bookings, whatever gets installed next)
 		// keeps the position it registered, in the store group above the
 		// drawer. Nothing needs to be named here to be placed sensibly.
 		$others = array_values( array_diff( $slugs, $named, $tail ) );
@@ -835,7 +835,7 @@ final class Merchant_First_Admin {
 			);
 		}
 
-		// Live toggle back to stock WordPress — handy mid-demo.
+		// Live toggle back to stock WordPress, handy mid-demo.
 		if ( current_user_can( 'manage_options' ) ) {
 			$bar->add_node(
 				array(
@@ -955,7 +955,7 @@ final class Merchant_First_Admin {
 		if ( ! $this->active() || isset( $_GET['mfa'] ) ) {
 			return;
 		}
-		// Only on store screens — leave core update notices alone in WP-land.
+		// Only on store screens. Leave core update notices alone in WP-land.
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		if ( ! $screen ) {
 			return;
@@ -974,7 +974,7 @@ final class Merchant_First_Admin {
 	 * Enqueue the menu styles and the accordion behaviour.
 	 *
 	 * Registered against a src-less handle so both ride WordPress's own
-	 * enqueue pipeline rather than being echoed into admin_head — which keeps
+	 * enqueue pipeline rather than being echoed into admin_head, which keeps
 	 * the output-escaping sniffs satisfied and lets other code depend on,
 	 * dequeue or filter them.
 	 */
@@ -1064,7 +1064,7 @@ CSS;
 	 * Turn the hover flyouts into click-to-expand accordions.
 	 *
 	 * The section you are in opens on load. A caret toggles any section
-	 * without navigating, while clicking the label still follows the link —
+	 * without navigating, while clicking the label still follows the link,
 	 * so nothing that used to be one click away becomes two.
 	 *
 	 * @return string
@@ -1117,7 +1117,7 @@ JS;
 
 	/**
 	 * A promoted page still reports its original parent, which is no longer in
-	 * the menu — so nothing highlights. Point it at the new top-level instead.
+	 * the menu, so nothing highlights. Point it at the new top-level instead.
 	 */
 	public function fix_highlight( $parent_file ) {
 		global $plugin_page;
@@ -1126,7 +1126,7 @@ JS;
 			return $parent_file;
 		}
 
-		// Every Analytics screen shares one page slug — 'wc-admin' — and is
+		// Every Analytics screen shares one page slug, 'wc-admin', and is
 		// told apart only by its client-side 'path'. Matching on the page
 		// alone would highlight Home while sitting on Customers, so try the
 		// fuller page+path key first and fall back to the bare page.

@@ -2,7 +2,7 @@
 # Build the installable zip and publish it as a GitHub release.
 #
 # The zip must unpack to merchant-first-admin/ for WordPress to treat it as an
-# update rather than a new plugin — which is why we build it by hand instead of
+# update rather than a new plugin, which is why we build it by hand instead of
 # letting GitHub generate a zipball.
 #
 # Usage: ./bin/release.sh 0.9.3
