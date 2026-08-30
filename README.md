@@ -3,27 +3,27 @@
 A single-file WordPress plugin that reshapes `wp-admin` around store operations: WooCommerce on the top level, everything WordPress folded behind one door. Built for Woo sales demos.
 
 ```
-Home                          WordPress ▾
-Orders                          Dashboard
-Subscriptions                   Posts
-Products                        Pages
-Customers                       Media
-Reports                         Comments
-Marketing                       Links
-Payments                        Stats
-Wholesale ◂ unnamed             Appearance
-Extensions ▸                    Plugins
-Settings                        Users
-──────────                      Tools
-WordPress ▸                     Site settings
-                                Jetpack
+Home ▸                        WordPress ▾
+   Overview · Products           Dashboard
+   Revenue · Orders · Stock      Posts
+Orders                           Pages
+Subscriptions                    Media
+Products                         Comments
+Customers                        Links
+Marketing                        Stats
+Payments                         Appearance
+Wholesale  ◂ unnamed             Plugins
+Extensions ▸                     Users
+Settings                         Tools
+──────────                       Site settings
+WordPress ▸                      Jetpack
 ```
 
 Placement is by rule, not by name. Only the merchant items above and the core WordPress drawer are listed in config; everything else — Wholesale, and whatever extension you install next — keeps the position it registered and stays in the store group. Anything left under WooCommerce is swept into **Extensions**, so no extension can register a menu that never appears. Settings always closes the store group.
 
 Menus are found by runtime discovery rather than hardcoded slugs, so it survives Woo version changes and handles both HPOS and legacy order screens. The item owning the current screen stays on the top level, keeping its own submenu reachable. `shop_manager` never sees the WordPress drawer.
 
-**Home** points at Analytics Overview rather than Woo's stock Home screen — Overview already renders the performance tiles and charts a merchant wants first, where stock Home is an onboarding checklist. Trim it to the metrics you want from the ⋮ menus on the Performance and Charts sections. The trade-off: Woo's onboarding tasks are no longer one click away.
+**Home** points at Analytics Overview rather than Woo's stock Home screen — Overview already renders the performance tiles and charts a merchant wants first, where stock Home is an onboarding checklist. Trim it to the metrics you want from the ⋮ menus on the Performance and Charts sections. The analytics sub-reports hang off Home, so there is no separate Reports item; two items pointing at the same route made WordPress highlight both. The trade-off: Woo's onboarding tasks are no longer one click away.
 
 ## Install
 

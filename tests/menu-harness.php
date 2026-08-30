@@ -84,6 +84,13 @@ $submenu = array(
 		array( 'Status', 'manage_woocommerce', 'wc-status' ),
 		array( 'Extensions', 'view_woocommerce_reports', 'wc-admin&path=/extensions' ),
 	),
+	'wc-admin&path=/analytics/overview' => array(
+		array( 'Overview', 'view_woocommerce_reports', 'wc-admin&path=/analytics/overview' ),
+		array( 'Products', 'view_woocommerce_reports', 'wc-admin&path=/analytics/products' ),
+		array( 'Revenue', 'view_woocommerce_reports', 'wc-admin&path=/analytics/revenue' ),
+		array( 'Orders', 'view_woocommerce_reports', 'wc-admin&path=/analytics/orders' ),
+		array( 'Stock', 'view_woocommerce_reports', 'wc-admin&path=/analytics/stock' ),
+	),
 	'themes.php'  => array(
 		array( 'Themes', 'switch_themes', 'themes.php' ),
 		array( 'Editor', 'edit_theme_options', 'site-editor.php' ),
@@ -154,3 +161,14 @@ foreach ( (array) $submenu as $parent => $items ) {
 echo $bad
 	? "  FAIL  promoted submenu slugs would render as file paths: " . implode( ' | ', $bad ) . "\n"
 	: "  PASS  promoted submenu slugs are admin.php-resolvable\n";
+
+$tops = array();
+foreach ( $menu as $m ) { if ( '' !== $m[0] ) { $tops[] = wp_strip_all_tags( $m[0] ); } }
+echo in_array( 'Reports', $tops, true )
+	? "  FAIL  Reports still has its own top-level, so it will double-highlight with Home\n"
+	: "  PASS  no duplicate Reports top-level\n";
+$home = null;
+foreach ( $menu as $m ) { if ( 'Home' === $m[0] ) { $home = $m[2]; } }
+echo ( $home && ! empty( $submenu[ $home ] ) )
+	? "  PASS  Home carries the analytics sub-reports (" . count( $submenu[ $home ] ) . ")\n"
+	: "  FAIL  Home has no sub-reports\n";

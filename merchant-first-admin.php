@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.4.0
+ * Version:      1.5.0
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.4.0';
+	const VERSION  = '1.5.0';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -468,6 +468,14 @@ final class Merchant_First_Admin {
 			}
 		}
 
+		// 5b. Home already lands on Analytics Overview, so a separate Reports
+		//     top-level pointed at the same route — and WordPress highlighted
+		//     both, through two different code paths. Fold the sub-reports
+		//     under Home and drop the duplicate. As with the WooCommerce
+		//     parent, the original submenu stays registered so permissions
+		//     keep resolving.
+		$this->merge_reports_into_home();
+
 		// 6. Everything left under WooCommerce goes to Extensions, so no
 		//    extension can register a menu that never appears anywhere.
 		$this->build_extensions( $wc_parent );
@@ -488,6 +496,39 @@ final class Merchant_First_Admin {
 			$menu[ $pos ]               = array( '', 'read', 'mfa-separator', '', 'wp-menu-separator' );
 			$this->found['separator']   = $pos;
 		}
+	}
+
+	/**
+	 * Give Home the analytics sub-reports and remove the Reports top-level.
+	 */
+	private function merge_reports_into_home() {
+		global $menu, $submenu;
+
+		if ( ! isset( $this->found['reports'], $this->found['home'] ) ) {
+			return;
+		}
+
+		$reports_slug = $menu[ $this->found['reports'] ][ self::SLUG ];
+		$home_slug    = $menu[ $this->found['home'] ][ self::SLUG ];
+
+		if ( ! empty( $submenu[ $reports_slug ] ) ) {
+			$children = array();
+			foreach ( $submenu[ $reports_slug ] as $item ) {
+				if ( empty( $item[ self::SLUG ] ) ) {
+					continue;
+				}
+				$children[] = array(
+					$this->clean_label( $item[ self::TITLE ] ),
+					$item[ self::CAP ],
+					$this->absolute_slug( $item[ self::SLUG ] ),
+				);
+			}
+			if ( $children ) {
+				$submenu[ $home_slug ] = $children;
+			}
+		}
+
+		unset( $menu[ $this->found['reports'] ], $this->found['reports'] );
 	}
 
 	/**
@@ -837,6 +878,18 @@ final class Merchant_First_Admin {
 
 		if ( ! $this->active() || empty( $plugin_page ) ) {
 			return $parent_file;
+		}
+
+		// Every Analytics screen shares one page slug — 'wc-admin' — and is
+		// told apart only by its client-side 'path'. Matching on the page
+		// alone would highlight Home while sitting on Customers, so try the
+		// fuller page+path key first and fall back to the bare page.
+		$path = isset( $_GET['path'] ) ? sanitize_text_field( wp_unslash( $_GET['path'] ) ) : '';
+		if ( $path ) {
+			$keyed = $plugin_page . '&path=' . $path;
+			if ( isset( $this->promoted[ $keyed ] ) ) {
+				return $this->promoted[ $keyed ];
+			}
 		}
 		return isset( $this->promoted[ $plugin_page ] ) ? $this->promoted[ $plugin_page ] : $parent_file;
 	}
