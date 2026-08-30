@@ -65,6 +65,8 @@ composer lint           # PHPCS: WordPress + Automattic VIP standards
 
 `phpcs.xml.dist` runs `WordPress-VIP-Go` — the same ruleset the [VIP Code Analysis Bot](https://docs.wpvip.com/vip-code-analysis-bot/) applies to pull requests — plus `WordPress-Extra`, `WordPress.Security` and `PHPCompatibilityWP` against PHP 7.4+. The tree is clean.
 
+[Plugin Check](https://wordpress.org/plugins/plugin-check/) — the WordPress.org plugins team's own readiness checker — reports clean across general, security, performance, accessibility and plugin_repo, with one deliberate exception: `plugin_updater_detected`. WordPress.org does not allow the `Update URI` header on plugins it hosts, since a hosted plugin could otherwise hijack its own updates. This plugin is not hosted there and updates from GitHub by design, so the finding is expected. Submitting to WordPress.org would mean dropping the updater.
+
 Two sniffs are excluded at the ruleset level, both structural and both documented inline: `GlobalVariablesOverride`, because rewriting `$menu`/`$submenu` is what an admin-menu plugin does and core exposes no API for it, and `InvalidClassFileName`, because WordPress requires the entry file be named for the plugin slug. Every other suppression is a line-level `phpcs:ignore` carrying its reason — worth keeping that way, since plugin review processes now audit unjustified suppressions specifically.
 
 Stubs the WordPress globals and runs the restructure against a simulated WP + Woo menu across five scenarios. Needs any PHP 7.4+ binary.
