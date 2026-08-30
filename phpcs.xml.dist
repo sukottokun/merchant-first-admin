@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<ruleset name="Merchant-First Admin">
+	<description>WordPress + Automattic VIP standards, plus PHP cross-version checks.</description>
+
+	<file>merchant-first-admin.php</file>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<!-- Same ruleset the VIP Code Analysis Bot runs on pull requests. -->
+	<rule ref="WordPress-VIP-Go"/>
+	<rule ref="WordPress-Extra"/>
+
+	<!--
+		Rewriting $menu and $submenu IS this plugin. WordPress exposes no API
+		for reordering top-level items or reparenting one, which is why every
+		admin-menu plugin manipulates the globals directly. Excluded at the
+		ruleset level rather than with a dozen inline ignores, so the decision
+		is visible in one place instead of scattered through the code.
+	-->
+	<rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
+		<exclude-pattern>merchant-first-admin.php</exclude-pattern>
+	</rule>
+
+	<!--
+		Single-file plugin: WordPress requires the entry file be named for the
+		plugin slug, so it cannot also be class-merchant-first-admin.php.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>merchant-first-admin.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="merchant-first-admin"/>
+			</property>
+		</properties>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.4"/>
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>

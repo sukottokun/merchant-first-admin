@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.3
+ * Version:      0.9.4
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -23,13 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '0.9.3';
-	const OPT_USER = 'mfa_disabled';
-	const NONCE    = 'mfa-switch';
-	const REPO     = 'sukottokun/merchant-first-admin';
-	const REPO_URL = 'https://github.com/sukottokun/merchant-first-admin';
+	const VERSION       = '0.9.3';
+	const OPT_USER      = 'mfa_disabled';
+	const NONCE         = 'mfa-switch';
+	const REPO          = 'sukottokun/merchant-first-admin';
+	const REPO_URL      = 'https://github.com/sukottokun/merchant-first-admin';
 	const RELEASE_CACHE = 'mfa_latest_release';
-	const TEXTDOMAIN = 'merchant-first-admin';
+	const TEXTDOMAIN    = 'merchant-first-admin';
 
 	/**
 	 * Offsets into a $menu / $submenu row. Core never names these, so every
@@ -67,10 +67,10 @@ final class Merchant_First_Admin {
 	private $find_top = array(
 		'woo_parent' => array( 'woocommerce' ),
 		'payments'   => array( 'tab=checkout' ),
-		'products'  => array( 'post_type=product' ),
-		'reports'   => array( 'path=/analytics', 'wc-admin&path=%2Fanalytics' ),
-		'marketing' => array( 'woocommerce-marketing', 'path=/marketing' ),
-		'wordpress' => array( 'index.php' ),
+		'products'   => array( 'post_type=product' ),
+		'reports'    => array( 'path=/analytics', 'wc-admin&path=%2Fanalytics' ),
+		'marketing'  => array( 'woocommerce-marketing', 'path=/marketing' ),
+		'wordpress'  => array( 'index.php' ),
 	);
 
 	/**
@@ -78,7 +78,7 @@ final class Merchant_First_Admin {
 	 * Matched on submenu slug needle, then title needle as a fallback.
 	 */
 	private $promote = array(
-		'home'      => array(
+		'home'          => array(
 			'title'  => 'Home',
 			'icon'   => 'dashicons-store',
 			'slugs'  => array( 'wc-admin' ),
@@ -90,7 +90,7 @@ final class Merchant_First_Admin {
 			// registration — 'path' is a client-side route, not a page.
 			'target' => 'admin.php?page=wc-admin&path=/analytics/overview',
 		),
-		'orders'    => array(
+		'orders'        => array(
 			'title' => 'Orders',
 			'icon'  => 'dashicons-cart',
 			'slugs' => array( 'wc-orders', 'post_type=shop_order' ),
@@ -102,13 +102,13 @@ final class Merchant_First_Admin {
 			'slugs' => array( 'wc-orders--shop_subscription', 'post_type=shop_subscription' ),
 			'names' => array( 'Subscriptions' ),
 		),
-		'customers' => array(
+		'customers'     => array(
 			'title' => 'Customers',
 			'icon'  => 'dashicons-groups',
 			'slugs' => array( 'path=/customers', 'path=%2Fcustomers' ),
 			'names' => array( 'Customers' ),
 		),
-		'settings'  => array(
+		'settings'      => array(
 			'title' => 'Settings',
 			'icon'  => 'dashicons-admin-generic',
 			'slugs' => array( 'wc-settings' ),
@@ -192,8 +192,7 @@ final class Merchant_First_Admin {
 		// is needed.
 		add_filter( 'update_plugins_github.com', array( $self, 'check_for_update' ), 10, 3 );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
-		add_action( 'admin_head', array( $self, 'styles' ) );
-		add_action( 'admin_footer', array( $self, 'accordion_script' ) );
+		add_action( 'admin_enqueue_scripts', array( $self, 'assets' ) );
 		add_action( 'admin_print_scripts', array( $self, 'suppress_notices' ), 1 );
 		add_filter( 'admin_footer_text', array( $self, 'footer' ) );
 		add_filter( 'update_footer', '__return_empty_string', 11 );
@@ -214,7 +213,9 @@ final class Merchant_First_Admin {
 		// the request as well as from the stored preference — otherwise ?mfa=off
 		// would not take effect until the following pageload. This path only
 		// reads; the write lives in handle_switches() behind a nonce.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 		if ( isset( $_GET['mfa'] ) && current_user_can( 'manage_options' ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 			$mode = sanitize_key( wp_unslash( $_GET['mfa'] ) );
 			if ( 'off' === $mode ) {
 				return false;
@@ -255,6 +256,7 @@ final class Merchant_First_Admin {
 	public function dump() {
 		global $menu, $submenu;
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 		if ( empty( $_GET['mfa'] ) || 'debug' !== sanitize_key( wp_unslash( $_GET['mfa'] ) ) ) {
 			return;
 		}
@@ -262,11 +264,19 @@ final class Merchant_First_Admin {
 			return;
 		}
 		header( 'Content-Type: text/plain; charset=utf-8' );
-		echo "MERCHANT-FIRST ADMIN " . self::VERSION . " — live menu dump\n";
-		echo "WooCommerce: " . ( defined( 'WC_VERSION' ) ? WC_VERSION : 'not detected' ) . "\n";
+
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- this
+		// response is served as text/plain to administrators only, and the
+		// values are menu registrations rather than user input. HTML-escaping
+		// here would corrupt the very slugs the dump exists to show: every
+		// 'wc-admin&path=/customers' would read '&amp;', which is the detail
+		// you are reading the dump for.
+		echo 'MERCHANT-FIRST ADMIN ' . self::VERSION . " — live menu dump\n";
+		echo 'WooCommerce: ' . ( defined( 'WC_VERSION' ) ? WC_VERSION : 'not detected' ) . "\n";
 		echo 'active():    ' . ( $this->active() ? 'YES' : 'NO — restructure was skipped' ) . "\n";
-		echo 'user meta ' . self::OPT_USER . ': ' . var_export( get_user_meta( get_current_user_id(), self::OPT_USER, true ), true ) . "\n";
-		echo 'MFA_DISABLE: ' . ( defined( 'MFA_DISABLE' ) ? var_export( MFA_DISABLE, true ) : 'not defined' ) . "\n";
+		$stored = get_user_meta( get_current_user_id(), self::OPT_USER, true );
+		echo 'user meta ' . self::OPT_USER . ': ' . ( '' === $stored ? '(unset)' : $stored ) . "\n";
+		echo 'MFA_DISABLE: ' . ( defined( 'MFA_DISABLE' ) ? ( MFA_DISABLE ? 'true' : 'false' ) : 'not defined' ) . "\n";
 		printf(
 			"menu rows: %d   submenu parents: %d   resolved: %d\n",
 			count( (array) $menu ),
@@ -296,6 +306,7 @@ final class Merchant_First_Admin {
 		foreach ( $this->found as $key => $idx ) {
 			printf( "  %-12s -> menu[%s] = %s\n", $key, $idx, isset( $menu[ $idx ][ self::SLUG ] ) ? $menu[ $idx ][ self::SLUG ] : '?' );
 		}
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		exit;
 	}
 
@@ -325,27 +336,27 @@ final class Merchant_First_Admin {
 		return false;
 	}
 
-	private function find_sub( $parent, $slugs, $names ) {
+	private function find_sub( $parent_slug, $slugs, $names ) {
 		global $submenu;
-		if ( empty( $submenu[ $parent ] ) ) {
+		if ( empty( $submenu[ $parent_slug ] ) ) {
 			return false;
 		}
 		foreach ( (array) $slugs as $needle ) {
-			foreach ( $submenu[ $parent ] as $k => $item ) {
+			foreach ( $submenu[ $parent_slug ] as $k => $item ) {
 				if ( ! empty( $item[ self::SLUG ] ) && $item[ self::SLUG ] === $needle ) {
 					return $k;
 				}
 			}
 		}
 		foreach ( (array) $slugs as $needle ) {
-			foreach ( $submenu[ $parent ] as $k => $item ) {
+			foreach ( $submenu[ $parent_slug ] as $k => $item ) {
 				if ( ! empty( $item[ self::SLUG ] ) && false !== strpos( $item[ self::SLUG ], $needle ) ) {
 					return $k;
 				}
 			}
 		}
 		foreach ( (array) $names as $name ) {
-			foreach ( $submenu[ $parent ] as $k => $item ) {
+			foreach ( $submenu[ $parent_slug ] as $k => $item ) {
 				if ( 0 === strcasecmp( trim( $this->clean_label( $item[ self::TITLE ] ) ), $name ) ) {
 					return $k;
 				}
@@ -365,6 +376,7 @@ final class Merchant_First_Admin {
 	private function is_current( $slug ) {
 		global $pagenow, $typenow;
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 		if ( $page ) {
 			return ( false !== strpos( $slug, 'page=' . $page ) ) || ( $slug === $page );
@@ -429,8 +441,8 @@ final class Merchant_First_Admin {
 				? $this->absolute_slug( $item[ self::SLUG ] )
 				: $spec['target'];
 
-			$pos          = $this->free_position();
-			$menu[ $pos ] = array(
+			$pos                                   = $this->free_position();
+			$menu[ $pos ]                          = array(
 				$this->label( $spec['title'] ),
 				$item[ self::CAP ],
 				$slug,
@@ -439,7 +451,7 @@ final class Merchant_First_Admin {
 				'mfa-' . $key,
 				$spec['icon'],
 			);
-			$this->found[ $key ]        = $pos;
+			$this->found[ $key ]                   = $pos;
 			$this->promoted[ $item[ self::SLUG ] ] = $slug;
 		}
 
@@ -448,8 +460,8 @@ final class Merchant_First_Admin {
 			if ( isset( $this->found[ $key ] ) || ! current_user_can( $spec['cap'] ) ) {
 				continue;
 			}
-			$pos          = $this->free_position();
-			$menu[ $pos ] = array(
+			$pos                 = $this->free_position();
+			$menu[ $pos ]        = array(
 				$this->label( $spec['title'] ),
 				$spec['cap'],
 				$spec['slug'],
@@ -469,7 +481,7 @@ final class Merchant_First_Admin {
 		// 5. Rename and re-icon.
 		foreach ( $this->rename as $key => $title ) {
 			if ( isset( $this->found[ $key ], $menu[ $this->found[ $key ] ] ) ) {
-				$menu[ $this->found[ $key ] ][ self::TITLE ] = $title;
+				$menu[ $this->found[ $key ] ][ self::TITLE ]      = $title;
 				$menu[ $this->found[ $key ] ][ self::PAGE_TITLE ] = $title;
 			}
 		}
@@ -503,9 +515,9 @@ final class Merchant_First_Admin {
 			}
 		}
 		if ( isset( $this->found['wordpress'] ) ) {
-			$pos                        = $this->free_position();
-			$menu[ $pos ]               = array( '', 'read', 'mfa-separator', '', 'wp-menu-separator' );
-			$this->found['separator']   = $pos;
+			$pos                      = $this->free_position();
+			$menu[ $pos ]             = array( '', 'read', 'mfa-separator', '', 'wp-menu-separator' );
+			$this->found['separator'] = $pos;
 		}
 	}
 
@@ -575,8 +587,8 @@ final class Merchant_First_Admin {
 			if ( '' === $label || in_array( $label, $placed, true ) ) {
 				continue;
 			}
-			$placed[]    = $label;
-			$leftovers[] = array(
+			$placed[]                              = $label;
+			$leftovers[]                           = array(
 				$this->clean_label( $item[ self::TITLE ] ),
 				$item[ self::CAP ],
 				$this->absolute_slug( $item[ self::SLUG ] ),
@@ -601,8 +613,8 @@ final class Merchant_First_Admin {
 			}
 		);
 
-		$pos          = $this->free_position();
-		$menu[ $pos ] = array(
+		$pos                                  = $this->free_position();
+		$menu[ $pos ]                         = array(
 			$this->label( $this->extensions['title'] ),
 			$leftovers[0][ self::CAP ],
 			$this->extensions['slug'],
@@ -648,7 +660,7 @@ final class Merchant_First_Admin {
 		foreach ( $dash as $item ) {
 			if ( ! empty( $item[ self::SLUG ] ) && 'index.php' === $item[ self::SLUG ] ) {
 				$item[ self::TITLE ] = __( 'Dashboard', 'merchant-first-admin' );
-				$new[]   = $item;
+				$new[]               = $item;
 				break;
 			}
 		}
@@ -709,8 +721,11 @@ final class Merchant_First_Admin {
 	 * @return string
 	 */
 	private function label( $text ) {
-		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
-		return __( $text, self::TEXTDOMAIN );
+		// Every string reaching this is a literal from the config arrays above.
+		// They cannot be wrapped at declaration: PHP forbids function calls in
+		// property defaults.
+		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- see above.
+		return __( $text, 'merchant-first-admin' );
 	}
 
 	/**
@@ -732,7 +747,7 @@ final class Merchant_First_Admin {
 		global $menu;
 		$pos = 90;
 		while ( isset( $menu[ (string) $pos ] ) || isset( $menu[ $pos ] ) ) {
-			$pos++;
+			++$pos;
 		}
 		return $pos;
 	}
@@ -794,11 +809,13 @@ final class Merchant_First_Admin {
 		if ( ! $this->active() ) {
 			// Still offer the way back in.
 			if ( current_user_can( 'manage_options' ) ) {
-				$bar->add_node( array(
-					'id'    => 'mfa-toggle',
-					'title' => __( 'Merchant view: off', 'merchant-first-admin' ),
-					'href'  => add_query_arg( 'mfa', 'on' ),
-				) );
+				$bar->add_node(
+					array(
+						'id'    => 'mfa-toggle',
+						'title' => __( 'Merchant view: off', 'merchant-first-admin' ),
+						'href'  => add_query_arg( 'mfa', 'on' ),
+					) 
+				);
 			}
 			return;
 		}
@@ -810,20 +827,24 @@ final class Merchant_First_Admin {
 		// "Howdy, Scott" -> just the name.
 		$account = $bar->get_node( 'my-account' );
 		if ( $account ) {
-			$bar->add_node( array(
-				'id'    => 'my-account',
-				'title' => str_replace( 'Howdy, ', '', $account->title ),
-			) );
+			$bar->add_node(
+				array(
+					'id'    => 'my-account',
+					'title' => str_replace( 'Howdy, ', '', $account->title ),
+				) 
+			);
 		}
 
 		// Live toggle back to stock WordPress — handy mid-demo.
 		if ( current_user_can( 'manage_options' ) ) {
-			$bar->add_node( array(
-				'id'    => 'mfa-toggle',
-				'title' => __( 'Merchant view:', 'merchant-first-admin' ) . ' ' . self::woo_mark(),
-				'href'  => wp_nonce_url( add_query_arg( 'mfa', 'off' ), self::NONCE ),
-				'meta'  => array( 'title' => __( 'Switch back to the stock WordPress menu', 'merchant-first-admin' ) ),
-			) );
+			$bar->add_node(
+				array(
+					'id'    => 'mfa-toggle',
+					'title' => __( 'Merchant view:', 'merchant-first-admin' ) . ' ' . self::woo_mark(),
+					'href'  => wp_nonce_url( add_query_arg( 'mfa', 'off' ), self::NONCE ),
+					'meta'  => array( 'title' => __( 'Switch back to the stock WordPress menu', 'merchant-first-admin' ) ),
+				) 
+			);
 		}
 	}
 
@@ -869,10 +890,11 @@ final class Merchant_First_Admin {
 			return $cached ? $cached : null;
 		}
 
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get -- vip_safe_wp_remote_get() only exists on the VIP platform; this plugin targets ordinary WordPress installs. The result is cached and failures are cached too, so this runs at most twice a day.
 		$response = wp_remote_get(
 			'https://api.github.com/repos/' . self::REPO . '/releases/latest',
 			array(
-				'timeout' => 10,
+				'timeout' => 3,
 				'headers' => array(
 					'Accept'     => 'application/vnd.github+json',
 					'User-Agent' => 'merchant-first-admin/' . self::VERSION,
@@ -929,6 +951,7 @@ final class Merchant_First_Admin {
 	}
 
 	public function suppress_notices() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 		if ( ! $this->active() || isset( $_GET['mfa'] ) ) {
 			return;
 		}
@@ -947,11 +970,35 @@ final class Merchant_First_Admin {
 		}
 	}
 
-	public function styles() {
+	/**
+	 * Enqueue the menu styles and the accordion behaviour.
+	 *
+	 * Registered against a src-less handle so both ride WordPress's own
+	 * enqueue pipeline rather than being echoed into admin_head — which keeps
+	 * the output-escaping sniffs satisfied and lets other code depend on,
+	 * dequeue or filter them.
+	 */
+	public function assets() {
 		if ( ! $this->active() ) {
 			return;
 		}
-		echo '<style id="mfa-styles">
+
+		wp_register_style( 'merchant-first-admin', false, array(), self::VERSION );
+		wp_enqueue_style( 'merchant-first-admin' );
+		wp_add_inline_style( 'merchant-first-admin', self::css() );
+
+		wp_register_script( 'merchant-first-admin', false, array(), self::VERSION, true );
+		wp_enqueue_script( 'merchant-first-admin' );
+		wp_add_inline_script( 'merchant-first-admin', self::js() );
+	}
+
+	/**
+	 * Menu and admin bar styles.
+	 *
+	 * @return string
+	 */
+	private static function css() {
+		return <<<'CSS'
 			#adminmenu li.mfa-sep { height:1px; margin:8px 12px; background:rgba(255,255,255,.13); padding:0; }
 			#adminmenu .wp-menu-image img { opacity:.9; }
 			#adminmenu a.menu-top { font-size:13px; }
@@ -1010,7 +1057,7 @@ final class Merchant_First_Admin {
 				display: inline-block !important;
 				float: none !important;
 			}
-		</style>';
+CSS;
 	}
 
 	/**
@@ -1019,13 +1066,11 @@ final class Merchant_First_Admin {
 	 * The section you are in opens on load. A caret toggles any section
 	 * without navigating, while clicking the label still follows the link —
 	 * so nothing that used to be one click away becomes two.
+	 *
+	 * @return string
 	 */
-	public function accordion_script() {
-		if ( ! $this->active() ) {
-			return;
-		}
-		?>
-<script id="mfa-accordion">
+	private static function js() {
+		return <<<'JS'
 ( function () {
 	var menu = document.getElementById( 'adminmenu' );
 	if ( ! menu ) { return; }
@@ -1062,9 +1107,9 @@ final class Merchant_First_Admin {
 		li.appendChild( btn );
 	} );
 }() );
-</script>
-		<?php
+JS;
 	}
+
 
 	public function footer( $text ) {
 		return $this->active() ? '' : $text;
@@ -1085,6 +1130,7 @@ final class Merchant_First_Admin {
 		// told apart only by its client-side 'path'. Matching on the page
 		// alone would highlight Home while sitting on Customers, so try the
 		// fuller page+path key first and fall back to the bare page.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading, not acting on, the request to decide what to render. The only state change behind ?mfa= is nonce-checked in handle_switches().
 		$path = isset( $_GET['path'] ) ? sanitize_text_field( wp_unslash( $_GET['path'] ) ) : '';
 		if ( $path ) {
 			$keyed = $plugin_page . '&path=' . $path;
@@ -1094,7 +1140,6 @@ final class Merchant_First_Admin {
 		}
 		return isset( $this->promoted[ $plugin_page ] ) ? $this->promoted[ $plugin_page ] : $parent_file;
 	}
-
 }
 
 Merchant_First_Admin::boot();
