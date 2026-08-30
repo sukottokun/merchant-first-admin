@@ -25,6 +25,8 @@ Menus are found by runtime discovery rather than hardcoded slugs, so it survives
 
 **Home** points at Analytics Overview rather than Woo's stock Home screen — Overview already renders the performance tiles and charts a merchant wants first, where stock Home is an onboarding checklist. Trim it to the metrics you want from the ⋮ menus on the Performance and Charts sections. The analytics sub-reports hang off Home, so there is no separate Reports item; two items pointing at the same route made WordPress highlight both. The trade-off: Woo's onboarding tasks are no longer one click away.
 
+Submenus are click-to-expand accordions rather than hover flyouts. The section you are in opens on load; a caret toggles any other without navigating, and clicking the label still follows the link. The collapsed icon rail keeps its flyouts, since that is the only thing that works at that width.
+
 ## Install
 
 Upload the zip via **Plugins → Add New → Upload Plugin**, then activate. Or drop `merchant-first-admin.php` into `wp-content/mu-plugins/`.

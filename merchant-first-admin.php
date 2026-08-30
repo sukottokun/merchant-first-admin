@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.0
+ * Version:      0.9.1
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '0.9.0';
+	const VERSION  = '0.9.1';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -183,6 +183,7 @@ final class Merchant_First_Admin {
 		add_filter( 'parent_file', array( $self, 'fix_highlight' ) );
 		add_action( 'admin_bar_menu', array( $self, 'clean_admin_bar' ), 999 );
 		add_action( 'admin_head', array( $self, 'styles' ) );
+		add_action( 'admin_footer', array( $self, 'accordion_script' ) );
 		add_action( 'admin_print_scripts', array( $self, 'suppress_notices' ), 1 );
 		add_filter( 'admin_footer_text', array( $self, 'footer' ) );
 		add_filter( 'update_footer', '__return_empty_string', 11 );
@@ -860,9 +861,97 @@ final class Merchant_First_Admin {
 			#adminmenu a.menu-top { font-size:13px; }
 			#wp-admin-bar-mfa-toggle .ab-item { opacity:.75; }
 			#wpfooter { display:none; }
+			/* --- Accordion submenus -------------------------------------
+			 * WordPress already renders the CURRENT section inline; every
+			 * other section is a hover flyout. Make them all behave the same
+			 * way. Scoped to :not(.folded) so the collapsed icon rail keeps
+			 * its flyouts, which are the only thing that works at that width.
+			 */
+			body:not(.folded) #adminmenu .wp-submenu {
+				position: static !important;
+				display: none;
+				width: auto !important;
+				min-width: 0 !important;
+				margin: 0 !important;
+				padding: 2px 0 6px !important;
+				box-shadow: none !important;
+				border: 0 !important;
+				background: rgba(0,0,0,.24) !important;
+			}
+			body:not(.folded) #adminmenu .wp-submenu-head { display: none !important; }
+			body:not(.folded) #adminmenu li.mfa-open > .wp-submenu { display: block !important; }
+			body:not(.folded) #adminmenu .wp-submenu a { padding-left: 46px !important; }
+			body:not(.folded) #adminmenu li.menu-top { position: relative; }
+
+			#adminmenu .mfa-caret {
+				position: absolute; top: 0; right: 4px;
+				height: 34px; width: 28px; padding: 0;
+				display: flex; align-items: center; justify-content: center;
+				background: none; border: 0; cursor: pointer; color: #a7aaad;
+			}
+			#adminmenu .mfa-caret:hover { color: #fff; }
+			#adminmenu .mfa-caret svg { width: 10px; height: 10px; transition: transform .15s ease; }
+			#adminmenu li.mfa-open > .mfa-caret svg { transform: rotate(90deg); }
+			body.folded #adminmenu .mfa-caret { display: none; }
+			@media (prefers-reduced-motion: reduce) {
+				#adminmenu .mfa-caret svg { transition: none; }
+			}
 			#wp-admin-bar-mfa-toggle .mfa-woo { height:12px; width:auto; vertical-align:-1px; margin-left:3px; }
 			#wp-admin-bar-mfa-toggle .ab-item { display:flex; align-items:center; gap:1px; }
 		</style>';
+	}
+
+	/**
+	 * Turn the hover flyouts into click-to-expand accordions.
+	 *
+	 * The section you are in opens on load. A caret toggles any section
+	 * without navigating, while clicking the label still follows the link —
+	 * so nothing that used to be one click away becomes two.
+	 */
+	public function accordion_script() {
+		if ( ! $this->active() ) {
+			return;
+		}
+		?>
+<script id="mfa-accordion">
+( function () {
+	var menu = document.getElementById( 'adminmenu' );
+	if ( ! menu ) { return; }
+
+	var CARET = '<svg viewBox="0 0 10 10" aria-hidden="true" focusable="false">'
+		+ '<path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" '
+		+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+	menu.querySelectorAll( 'li.menu-top' ).forEach( function ( li ) {
+		var sub = li.querySelector( '.wp-submenu' );
+		if ( ! sub || ! sub.querySelector( 'a' ) ) { return; }
+
+		// WordPress already marks the section you are in.
+		if ( li.classList.contains( 'wp-has-current-submenu' ) || li.classList.contains( 'wp-menu-open' ) ) {
+			li.classList.add( 'mfa-open' );
+		}
+
+		var btn = document.createElement( 'button' );
+		btn.type = 'button';
+		btn.className = 'mfa-caret';
+		btn.innerHTML = CARET;
+
+		var label = li.querySelector( 'a.menu-top .wp-menu-name' );
+		btn.setAttribute( 'aria-label', ( label ? label.textContent.trim() + ': ' : '' ) + 'toggle section' );
+		btn.setAttribute( 'aria-expanded', li.classList.contains( 'mfa-open' ) ? 'true' : 'false' );
+
+		btn.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();
+			var open = li.classList.toggle( 'mfa-open' );
+			btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		} );
+
+		li.appendChild( btn );
+	} );
+}() );
+</script>
+		<?php
 	}
 
 	public function footer( $text ) {
