@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      1.2.1
+ * Version:      1.3.0
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION  = '1.2.1';
+	const VERSION  = '1.3.0';
 	const OPT_USER = 'mfa_disabled';
 	const NONCE    = 'mfa-switch';
 	const TEXTDOMAIN = 'merchant-first-admin';
@@ -759,11 +759,26 @@ final class Merchant_First_Admin {
 		if ( current_user_can( 'manage_options' ) ) {
 			$bar->add_node( array(
 				'id'    => 'mfa-toggle',
-				'title' => __( 'Merchant view: on', 'merchant-first-admin' ),
+				'title' => __( 'Merchant view:', 'merchant-first-admin' ) . ' ' . self::woo_mark(),
 				'href'  => wp_nonce_url( add_query_arg( 'mfa', 'off' ), self::NONCE ),
 				'meta'  => array( 'title' => __( 'Switch back to the stock WordPress menu', 'merchant-first-admin' ) ),
 			) );
 		}
+	}
+
+	/**
+	 * The Woo wordmark, inline.
+	 *
+	 * Path data is the official asset in Woo Purple 40 (#873EFF). The shipped
+	 * SVG colours through .st0 class selectors, which would collide with
+	 * anything else in wp-admin, so the fill moves to the group and the
+	 * classes are dropped. Proportions and colour are untouched, per the
+	 * brand's prohibited-modifications rules.
+	 *
+	 * @return string
+	 */
+	private static function woo_mark() {
+		return '<svg class="mfa-woo" viewBox="0 0 183.6 47.5" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Woo" focusable="false"><g fill="#873EFF" fill-rule="evenodd" clip-rule="evenodd"><path d="M77.4,0c-4.3,0-7.1,1.4-9.6,6.1L56.4,27.6V8.5c0-5.7-2.7-8.5-7.7-8.5s-7.1,1.7-9.6,6.5L28.3,27.6V8.7 c0-6.1-2.5-8.7-8.6-8.7H7.3C2.6,0,0,2.2,0,6.2s2.5,6.4,7.1,6.4h5.1v24.1c0,6.8,4.6,10.8,11.2,10.8s9.6-2.6,12.9-8.7l7.2-13.5v11.4 c0,6.7,4.4,10.8,11.1,10.8s9.2-2.3,13-8.7l16.6-28C87.8,4.7,85.3,0,77.3,0C77.3,0,77.3,0,77.4,0z"/><path d="M108.6,0C95,0,84.7,10.1,84.7,23.8s10.4,23.7,23.9,23.7s23.8-10.1,23.9-23.7C132.5,10.1,122.1,0,108.6,0z M108.6,32.9c-5.1,0-8.6-3.8-8.6-9.1s3.5-9.2,8.6-9.2s8.6,3.9,8.6,9.2S113.8,32.9,108.6,32.9z"/><path d="M159.7,0c-13.5,0-23.9,10.1-23.9,23.8s10.4,23.7,23.9,23.7s23.9-10.1,23.9-23.7S173.2,0,159.7,0z M159.7,32.9 c-5.2,0-8.5-3.8-8.5-9.1s3.4-9.2,8.5-9.2s8.6,3.9,8.6,9.2S164.9,32.9,159.7,32.9z"/></g></svg>';
 	}
 
 	public function suppress_notices() {
@@ -795,6 +810,8 @@ final class Merchant_First_Admin {
 			#adminmenu a.menu-top { font-size:13px; }
 			#wp-admin-bar-mfa-toggle .ab-item { opacity:.75; }
 			#wpfooter { display:none; }
+			#wp-admin-bar-mfa-toggle .mfa-woo { height:12px; width:auto; vertical-align:-1px; margin-left:3px; }
+			#wp-admin-bar-mfa-toggle .ab-item { display:flex; align-items:center; gap:1px; }
 		</style>';
 	}
 
