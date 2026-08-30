@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.9
+ * Version:      0.9.10
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION       = '0.9.9';
+	const VERSION       = '0.9.10';
 	const OPT_USER      = 'mfa_disabled';
 	const NONCE         = 'mfa-switch';
 	const REPO          = 'sukottokun/merchant-first-admin';
@@ -307,6 +307,8 @@ final class Merchant_First_Admin {
 		foreach ( $this->found as $key => $idx ) {
 			printf( "  %-12s -> menu[%s] = %s\n", $key, $idx, isset( $menu[ $idx ][ self::SLUG ] ) ? $menu[ $idx ][ self::SLUG ] : '?' );
 		}
+		echo "\n\nUPDATER\n\n";
+		$this->dump_updater();
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		exit;
 	}
@@ -861,6 +863,97 @@ final class Merchant_First_Admin {
 			);
 		}
 	}
+
+	/**
+	 * Print why the update check is or is not producing a result.
+	 *
+	 * Every line here answers a specific question that otherwise needs a
+	 * guess: is the header being read, is the filter attached, can this host
+	 * reach GitHub at all, what did the comparison decide, and is something
+	 * else short-circuiting WordPress's update machinery.
+	 *
+	 * phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+	 */
+	private function dump_updater() {
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$file = plugin_basename( __FILE__ );
+		$data = get_plugin_data( __FILE__, false, false );
+
+		printf( "  plugin file       : %s\n", $file );
+		printf( "  installed version : %s\n", self::VERSION );
+		printf( "  Update URI header : %s\n", empty( $data['UpdateURI'] ) ? '(EMPTY - core will never call the filter)' : $data['UpdateURI'] );
+		printf( "  filter attached   : %s\n", has_filter( 'update_plugins_github.com' ) ? 'yes' : 'NO' );
+
+		$cached = get_site_transient( self::RELEASE_CACHE );
+		if ( false === $cached ) {
+			echo "  cached lookup     : none\n";
+		} elseif ( is_array( $cached ) && $cached ) {
+			printf( "  cached lookup     : %s\n", $cached['version'] );
+		} else {
+			echo "  cached lookup     : a failed lookup is cached\n";
+		}
+
+		// Live call, bypassing the cache entirely.
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get -- vip_safe_wp_remote_get() only exists on the VIP platform; this runs on ordinary WordPress installs, and only on an explicit ?mfa=debug request.
+		$response = wp_remote_get(
+			'https://api.github.com/repos/' . self::REPO . '/releases/latest',
+			array(
+				'timeout' => 5,
+				'headers' => array(
+					'Accept'     => 'application/vnd.github+json',
+					'User-Agent' => 'merchant-first-admin/' . self::VERSION,
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			printf( "  live GitHub call  : FAILED (%s) %s\n", $response->get_error_code(), $response->get_error_message() );
+		} else {
+			$code = wp_remote_retrieve_response_code( $response );
+			printf( "  live GitHub call  : HTTP %s\n", $code );
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( ! empty( $body['tag_name'] ) ) {
+				$remote = ltrim( $body['tag_name'], 'vV' );
+				$assets = array();
+				foreach ( (array) ( isset( $body['assets'] ) ? $body['assets'] : array() ) as $a ) {
+					$assets[] = $a['name'];
+				}
+				printf( "  latest tag        : %s\n", $body['tag_name'] );
+				printf( "  release assets    : %s\n", $assets ? implode( ', ', $assets ) : '(NONE - a zip asset is required)' );
+				printf(
+					"  comparison        : %s vs %s -> %s\n",
+					$remote,
+					self::VERSION,
+					version_compare( $remote, self::VERSION, '>' ) ? 'UPDATE AVAILABLE' : 'no update'
+				);
+			} elseif ( ! empty( $body['message'] ) ) {
+				printf( "  GitHub said       : %s\n", $body['message'] );
+			}
+		}
+
+		// Is anything else interfering with core's update machinery?
+		$updates = get_site_transient( 'update_plugins' );
+		if ( is_object( $updates ) ) {
+			$in_response  = isset( $updates->response[ $file ] );
+			$in_no_update = isset( $updates->no_update[ $file ] );
+			printf( "  WP update cache   : response=%s no_update=%s\n", $in_response ? 'yes' : 'no', $in_no_update ? 'yes' : 'no' );
+			if ( $in_response ) {
+				printf( "  WP offers version : %s\n", $updates->response[ $file ]->new_version );
+			}
+			printf( "  cache last checked: %s\n", isset( $updates->last_checked ) ? gmdate( 'Y-m-d H:i:s', $updates->last_checked ) . ' UTC' : 'unknown' );
+		} else {
+			echo "  WP update cache   : EMPTY (core has not run a plugin update check)\n";
+		}
+
+		printf( "  update check short-circuited : %s\n", has_filter( 'pre_site_transient_update_plugins' ) ? 'YES - something is intercepting the update transient' : 'no' );
+		printf( "  auto-update disabled by      : %s\n", has_filter( 'automatic_updater_disabled' ) ? 'a filter is present' : 'nothing' );
+		printf( "  outbound HTTP filtered by    : %s\n", has_filter( 'pre_http_request' ) ? 'YES - a plugin or host is intercepting HTTP' : 'no' );
+		printf( "  WP_HTTP_BLOCK_EXTERNAL       : %s\n", ( defined( 'WP_HTTP_BLOCK_EXTERNAL' ) && WP_HTTP_BLOCK_EXTERNAL ) ? 'ON - external requests are blocked' : 'off' );
+	}
+	// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
 	/**
 	 * Report a newer GitHub release to WordPress's update system.
