@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION      = '0.9.5';
+	const VERSION       = '0.9.5';
 	const OPT_USER      = 'mfa_disabled';
 	const NONCE         = 'mfa-switch';
 	const REPO          = 'sukottokun/merchant-first-admin';
