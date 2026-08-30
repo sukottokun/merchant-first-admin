@@ -901,6 +901,7 @@ final class Merchant_First_Admin {
 		$response = wp_remote_get(
 			'https://api.github.com/repos/' . self::REPO . '/releases/latest',
 			array(
+				// phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout -- a diagnostic run only on an explicit ?mfa=debug request by an administrator, where waiting for the real answer is the whole point.
 				'timeout' => 5,
 				'headers' => array(
 					'Accept'     => 'application/vnd.github+json',
