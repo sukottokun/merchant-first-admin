@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Merchant-First Admin
  * Description:  Reshapes wp-admin around store operations: store tasks at the top level, everything WordPress behind one door. Built for demo sites.
- * Version:      0.9.6
+ * Version:      0.9.7
  * Author:       Scott Massey
  * License:      GPL-2.0-or-later
  * Text Domain:  merchant-first-admin
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Merchant_First_Admin {
 
-	const VERSION      = '0.9.6';
+	const VERSION       = '0.9.7';
 	const OPT_USER      = 'mfa_disabled';
 	const NONCE         = 'mfa-switch';
 	const REPO          = 'sukottokun/merchant-first-admin';
@@ -656,13 +656,20 @@ final class Merchant_First_Admin {
 		$dash = isset( $submenu[ $parent ] ) ? $submenu[ $parent ] : array();
 		$new  = array();
 
-		// Keep the real Dashboard as the drawer's first entry.
+		// Keep everything core and other plugins already registered under the
+		// Dashboard, not just the Dashboard link. Rebuilding this submenu from
+		// scratch dropped Updates, which is the only route to update-core.php
+		// once the admin bar node is gone.
 		foreach ( $dash as $item ) {
-			if ( ! empty( $item[ self::SLUG ] ) && 'index.php' === $item[ self::SLUG ] ) {
-				$item[ self::TITLE ] = __( 'Dashboard', 'merchant-first-admin' );
-				$new[]               = $item;
-				break;
+			if ( empty( $item[ self::SLUG ] ) ) {
+				continue;
 			}
+			if ( 'index.php' === $item[ self::SLUG ] ) {
+				$item[ self::TITLE ] = __( 'Dashboard', 'merchant-first-admin' );
+			} else {
+				$item[ self::TITLE ] = $this->clean_label( $item[ self::TITLE ] );
+			}
+			$new[] = $item;
 		}
 
 		foreach ( $this->drawer as $needle ) {
@@ -820,7 +827,7 @@ final class Merchant_First_Admin {
 			return;
 		}
 
-		foreach ( array( 'wp-logo', 'comments', 'customize', 'updates', 'search' ) as $node ) {
+		foreach ( array( 'wp-logo', 'comments', 'customize', 'search' ) as $node ) {
 			$bar->remove_node( $node );
 		}
 

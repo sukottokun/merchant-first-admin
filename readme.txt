@@ -4,7 +4,7 @@ Tags: woocommerce, admin, admin-menu, ecommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.6
+Stable tag: 0.9.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,10 @@ Add `?mfa=debug` to any admin URL for a plain-text dump of the live menu registr
 No. It updates itself from GitHub releases, which is why it carries an `Update URI` header. WordPress.org does not permit that header on plugins it hosts.
 
 == Changelog ==
+
+= 0.9.7 =
+* Fixed: Updates was missing from the WordPress drawer, leaving no menu route to update-core.php.
+* The admin bar updates indicator is no longer hidden.
 
 = 0.9.6 =
 * Tidied code comments. No functional change.

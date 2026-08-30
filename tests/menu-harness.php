@@ -172,3 +172,9 @@ foreach ( $menu as $m ) { if ( 'Home' === $m[0] ) { $home = $m[2]; } }
 echo ( $home && ! empty( $submenu[ $home ] ) )
 	? "  PASS  Home carries the analytics sub-reports (" . count( $submenu[ $home ] ) . ")\n"
 	: "  FAIL  Home has no sub-reports\n";
+
+$drawer_slugs = array();
+foreach ( (array) $submenu['index.php'] as $d ) { $drawer_slugs[] = $d[2]; }
+echo in_array( 'update-core.php', $drawer_slugs, true )
+	? "  PASS  Updates is reachable from the WordPress drawer\n"
+	: "  FAIL  Updates was dropped, so update-core.php has no menu route\n";
