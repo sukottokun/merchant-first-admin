@@ -1,51 +1,28 @@
 # Merchant-First Admin
 
-A single-file WordPress plugin that reorders wp-admin around store operations. WooCommerce on the top level, WordPress behind one door. Built for Woo demos.
+A simple WordPress plugin that cleans up the WooCommerce dashboard to provide a more "merchant-first" user experience. Built for Woo demos.
 
-```
-Home ▸                        WordPress ▾
-   Overview · Products           Dashboard
-   Revenue · Orders · Stock      Posts
-Orders                           Pages
-Subscriptions                    Media
-Products                         Comments
-Customers                        Links
-Marketing                        Stats
-Payments                         Appearance
-Wholesale  ◂ unnamed             Plugins
-Extensions ▸                     Users
-Settings                         Tools
-──────────                       Site settings
-WordPress ▸                      Jetpack
-```
+Placement is by heuristic: if Woo or wc_ is in the name. Home opens Analytics Overview instead of the stock Home screen. Submenus are click-to-expand accordions, not hover flyouts.
 
-Placement is by rule, not by name. Only the merchant items and the WordPress drawer are named in config. Everything else, including whatever extension you install next, keeps the position it registered and stays in the store group. Anything left under WooCommerce lands in Extensions, so nothing an extension registers can go missing.
-
-Menus are found at runtime rather than by hardcoded slugs, so this survives Woo version changes and handles both HPOS and legacy order screens. `shop_manager` never sees the WordPress drawer.
-
-Home opens Analytics Overview instead of the stock Home screen. Submenus are click-to-expand accordions, not hover flyouts.
+You can switch between this view and the default admin view via the `Merchant View` control at the top of the dashboard.
 
 ## Install
 
 Download the zip from [the latest release](https://github.com/sukottokun/merchant-first-admin/releases/latest), upload it under **Plugins → Add New → Upload Plugin**, and activate. Or drop `merchant-first-admin.php` into `wp-content/mu-plugins/`.
 
-After the first install it updates itself from GitHub releases. New versions appear under **Dashboard → Updates** like any other plugin.
+New versions appear under **Dashboard → Updates** like any other plugin.
 
 ## Two URLs to know
 
 * `…/wp-admin/index.php?mfa=off` reverts to the standard menu. It works per user and stays saved. There is also a "Merchant view" toggle in the admin bar.
 * `…/wp-admin/index.php?mfa=debug` dumps the live `$menu` and `$submenu` as plain text. Reach for it when a menu is not where you expected.
 
-Also `?mfa=on` and `?mfa=notices`. All are administrators only. `define( 'MFA_DISABLE', true )` turns it off site wide.
-
-## Configure
-
-The properties at the top of the class: `$order`, `$find_top`, `$promote`, `$invent`, `$rename`, `$icons`, `$extensions`, `$drawer`, `$hide_drawer_for`.
+Also, `?mfa=on` and `?mfa=notices`. All are administrators only. `define( 'MFA_DISABLE', true )` turns it off site-wide.
 
 ## Tests and linting
 
 ```bash
-./tests/run.sh     # menu restructure, five scenarios
+./tests/run.sh     # menu restructure
 composer install   # once
 composer lint      # PHPCS, WordPress and Automattic VIP standards
 ```
